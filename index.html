@@ -21,8 +21,8 @@
     }
   </script>
 
-  <!-- 引入样式表 -->
-  <link rel="stylesheet" href="styles.css">
+  <!-- 引入样式表 (带版本号强刷缓存) -->
+  <link rel="stylesheet" href="styles.css?v=20260930_1605">
 </head>
 <body>
   <div id="app" v-cloak class="min-h-screen flex flex-col">
@@ -110,67 +110,75 @@
               'is-mutual-rest': cell.isMutualRest && cell.isCurrentMonth,
               'is-selected': cell.dateStr === selectedDateStr
             }"
-            @click="handleCellClick(cell)"
+            @click="cell.isCurrentMonth && handleCellClick(cell)"
           >
-            <!-- 日期与农历/节气小字 (对齐截图：日历数 + 农历日/廿一/白露/秋分/中秋) -->
-            <div class="cell-top-row">
-              <span class="cell-day-num">{{ cell.dayNumber }}</span>
-              <span 
-                class="cell-lunar-text"
-                :class="{ 
-                  'is-term': isSolarTerm(cell),
-                  'is-festival': isTraditionalFestival(cell)
-                }"
-              >
-                {{ getLunarDayText(cell) }}
+            <!-- 仅当属于当月日期时渲染内容，非当月留白（完全对齐参考图去方格化极简排版） -->
+            <template v-if="cell.isCurrentMonth">
+              <!-- 共同休息日 专属小标签 (对齐用户需求：小标签或星号标注) -->
+              <span v-if="cell.isMutualRest" class="mutual-rest-badge">
+                ★同休
               </span>
-              <!-- 共同休息日 醒目标识 (用户指定新增) -->
-              <span v-if="cell.isMutualRest && cell.isCurrentMonth" class="mutual-rest-cell-chip">✦同休</span>
-            </div>
 
-            <!-- 法定放假 [休] 或 调休补班 [班] 极简角标 -->
-            <span 
-              v-if="cell.holInfo" 
-              class="statutory-badge"
-              :class="cell.holInfo?.isHoliday ? 'holiday' : 'work'"
-            >
-              {{ cell.holInfo?.isHoliday ? '休' : '班' }}
-            </span>
-
-            <!-- 班次胶囊区 (根据视图模式显示) -->
-            <div class="cell-shift-wrap">
-              <!-- 单人模式 (我 / TA)：直接显示对应人的实心全彩胶囊，高度对齐截图 -->
-              <template v-if="viewMode === 'p1' || viewMode === 'p2'">
-                <div 
-                  v-if="activePersonShift(cell)" 
-                  class="single-shift-pill" 
-                  :style="{ backgroundColor: activePersonShift(cell)?.color || '#3b82f6' }"
-                >
-                  {{ activePersonShift(cell)?.name }}
+              <!-- 日期与农历/节气 (数字 + 农历/白露/秋分 + 星号) -->
+              <div class="cell-top-row">
+                <div class="cell-day-num-wrap">
+                  <span class="cell-day-num">{{ cell.dayNumber }}</span>
+                  <span v-if="cell.isMutualRest" class="mutual-rest-star">★</span>
                 </div>
-              </template>
-
-              <!-- 双人同看模式：展示精炼紧凑双人微胶囊 -->
-              <template v-else>
-                <div 
-                  v-if="cell.p1?.shift" 
-                  class="dual-shift-pill" 
-                  :style="{ backgroundColor: cell.p1?.shift?.color || '#3b82f6' }"
+                <span 
+                  class="cell-lunar-text"
+                  :class="{ 
+                    'is-term': isSolarTerm(cell),
+                    'is-festival': isTraditionalFestival(cell)
+                  }"
                 >
-                  <span class="dual-pill-badge">{{ p1Info.name }}</span>
-                  <span>{{ cell.p1?.shift?.name }}</span>
-                </div>
-                <div 
-                  v-if="cell.p2?.shift" 
-                  class="dual-shift-pill" 
-                  :style="{ backgroundColor: cell.p2?.shift?.color || '#ec4899' }"
-                >
-                  <span class="dual-pill-badge">{{ p2Info.name }}</span>
-                  <span>{{ cell.p2?.shift?.name }}</span>
-                </div>
-              </template>
-            </div>
+                  {{ getLunarDayText(cell) }}
+                </span>
+              </div>
 
+              <!-- 法定放假 [休] 或 调休补班 [班] 极简角标 -->
+              <span 
+                v-if="cell.holInfo" 
+                class="statutory-badge"
+                :class="cell.holInfo?.isHoliday ? 'holiday' : 'work'"
+              >
+                {{ cell.holInfo?.isHoliday ? '休' : '班' }}
+              </span>
+
+              <!-- 班次胶囊区 (根据视图模式显示) -->
+              <div class="cell-shift-wrap">
+                <!-- 单人模式 (我 / TA)：直接显示对应人的实心全彩胶囊，高度对齐截图 -->
+                <template v-if="viewMode === 'p1' || viewMode === 'p2'">
+                  <div 
+                    v-if="activePersonShift(cell)" 
+                    class="single-shift-pill" 
+                    :style="{ backgroundColor: activePersonShift(cell)?.color || '#3b82f6' }"
+                  >
+                    {{ activePersonShift(cell)?.name }}
+                  </div>
+                </template>
+
+                <!-- 双人同看模式：展示精炼紧凑双人微胶囊 -->
+                <template v-else>
+                  <div 
+                    v-if="cell.p1?.shift" 
+                    class="dual-shift-pill" 
+                    :style="{ backgroundColor: cell.p1?.shift?.color || '#3b82f6' }"
+                  >
+                    <span class="dual-pill-badge">{{ p1Info.name }}</span>
+                    <span>{{ cell.p1?.shift?.name }}</span>
+                  </div>
+                  <div 
+                    v-if="cell.p2?.shift" 
+                    class="dual-shift-pill" 
+                    :style="{ backgroundColor: cell.p2?.shift?.color || '#ec4899' }"
+                  >
+                    <span class="dual-pill-badge">{{ p2Info.name }}</span>
+                    <span>{{ cell.p2?.shift?.name }}</span>
+                  </div>
+                </template>
+              </div>
+            </template>
           </div>
         </div>
       </div>
@@ -220,7 +228,7 @@
     <!-- ========================================================= -->
     <!-- 模态框 0：月度统计与看板模块 (从侧边栏独立为模态框/抽屉) -->
     <!-- ========================================================= -->
-    <div v-if="modals.statsDetail" class="modal-overlay" @click.self="modals.statsDetail = false">
+    <div v-if="modals.statsDetail" class="modal-overlay" @click.self="handleOverlayClick('statsDetail')">
       <div class="modal-card !max-w-2xl">
         <div class="sheet-handle-bar lg:hidden"></div>
         <div class="modal-header">
@@ -435,7 +443,7 @@
     <!-- ========================================================= -->
     <!-- 模态框 1：单日双人排班与备注编辑 (核心要求) -->
     <!-- ========================================================= -->
-    <div v-if="modals.dayEdit" class="modal-overlay" @click.self="modals.dayEdit = false">
+    <div v-if="modals.dayEdit" class="modal-overlay" @click.self="handleOverlayClick('dayEdit')">
       <div class="modal-card !max-w-2xl">
         
         <div class="modal-header">
@@ -659,7 +667,7 @@
     <!-- ========================================================= -->
     <!-- 模态框 2：开启自动轮班排班 (支持双人协同排班) -->
     <!-- ========================================================= -->
-    <div v-if="modals.applyRotation" class="modal-overlay" @click.self="modals.applyRotation = false">
+    <div v-if="modals.applyRotation" class="modal-overlay" @click.self="handleOverlayClick('applyRotation')">
       <div class="modal-card !max-w-2xl">
         
         <div class="modal-header">
@@ -929,7 +937,7 @@
     <!-- ========================================================= -->
     <!-- 模态框 6：双人称呼与身份设置 (新功能) -->
     <!-- ========================================================= -->
-    <div v-if="modals.personSettings" class="modal-overlay" @click.self="modals.personSettings = false">
+    <div v-if="modals.personSettings" class="modal-overlay" @click.self="handleOverlayClick('personSettings')">
       <div class="modal-card !max-w-md">
         
         <div class="modal-header">
@@ -987,7 +995,7 @@
     <!-- ========================================================= -->
     <!-- 模态框 3：班次管理 (自定义班次与颜色编辑) -->
     <!-- ========================================================= -->
-    <div v-if="modals.shiftManage" class="modal-overlay" @click.self="modals.shiftManage = false">
+    <div v-if="modals.shiftManage" class="modal-overlay" @click.self="handleOverlayClick('shiftManage')">
       <div class="modal-card !max-w-2xl">
         
         <div class="modal-header">
@@ -1050,7 +1058,7 @@
     </div>
 
     <!-- 模态框 3-1：班次编辑表单子弹窗 -->
-    <div v-if="modals.shiftForm" class="modal-overlay" style="z-index: 1100;" @click.self="modals.shiftForm = false">
+    <div v-if="modals.shiftForm" class="modal-overlay" style="z-index: 1100;" @click.self="handleOverlayClick('shiftForm')">
       <div class="modal-card !max-w-lg">
         
         <div class="modal-header">
@@ -1136,7 +1144,7 @@
     <!-- ========================================================= -->
     <!-- 模态框 4：轮班方案管理 -->
     <!-- ========================================================= -->
-    <div v-if="modals.rotationManage" class="modal-overlay" @click.self="modals.rotationManage = false">
+    <div v-if="modals.rotationManage" class="modal-overlay" @click.self="handleOverlayClick('rotationManage')">
       <div class="modal-card !max-w-2xl">
         
         <div class="modal-header">
@@ -1205,7 +1213,7 @@
     </div>
 
     <!-- 模态框 4-1：轮班方案编辑表单 -->
-    <div v-if="modals.rotationForm" class="modal-overlay" style="z-index: 1100;" @click.self="modals.rotationForm = false">
+    <div v-if="modals.rotationForm" class="modal-overlay" style="z-index: 1100;" @click.self="handleOverlayClick('rotationForm')">
       <div class="modal-card !max-w-xl">
         
         <div class="modal-header">
@@ -1293,7 +1301,7 @@
     <!-- ========================================================= -->
     <!-- 模态框 5：导入、导出与数据管理 -->
     <!-- ========================================================= -->
-    <div v-if="modals.exportImport" class="modal-overlay" @click.self="modals.exportImport = false">
+    <div v-if="modals.exportImport" class="modal-overlay" @click.self="handleOverlayClick('exportImport')">
       <div class="modal-card !max-w-lg">
         
         <div class="modal-header">
@@ -1368,7 +1376,7 @@
     <!-- ========================================================= -->
     <!-- 模态框 7：☁️ 云端双人跨设备实时同步设置 (核心新功能) -->
     <!-- ========================================================= -->
-    <div v-if="modals.cloudSync" class="modal-overlay" @click.self="modals.cloudSync = false">
+    <div v-if="modals.cloudSync" class="modal-overlay" @click.self="handleOverlayClick('cloudSync')">
       <div class="modal-card !max-w-lg">
         
         <div class="modal-header">
@@ -1500,7 +1508,7 @@
     <!-- ========================================================= -->
     <!-- 模态框 8：🗑️ 批量清空与一键清除二次防误触确认 (核心新功能 1) -->
     <!-- ========================================================= -->
-    <div v-if="modals.clearConfirm" class="modal-overlay" @click.self="modals.clearConfirm = false">
+    <div v-if="modals.clearConfirm" class="modal-overlay" @click.self="handleOverlayClick('clearConfirm')">
       <div class="modal-card !max-w-md">
         
         <div class="modal-header bg-red-50 dark:bg-red-950/30 border-b border-red-100 dark:border-red-900/40">
@@ -1600,7 +1608,7 @@
     <!-- ========================================================= -->
     <!-- 模态框 9：🕒 操作历史快照记录与一键撤销管理 (核心新功能 1-1) -->
     <!-- ========================================================= -->
-    <div v-if="modals.historyManage" class="modal-overlay" @click.self="modals.historyManage = false">
+    <div v-if="modals.historyManage" class="modal-overlay" @click.self="handleOverlayClick('historyManage')">
       <div class="modal-card !max-w-2xl">
         
         <div class="modal-header">
@@ -1683,7 +1691,7 @@
     <!-- ========================================================= -->
     <!-- 模态框 10：🇨🇳 中国法定节假日与调休补班全景查询 (核心新功能 2) -->
     <!-- ========================================================= -->
-    <div v-if="modals.holidayCalendar" class="modal-overlay" @click.self="modals.holidayCalendar = false">
+    <div v-if="modals.holidayCalendar" class="modal-overlay" @click.self="handleOverlayClick('holidayCalendar')">
       <div class="modal-card !max-w-2xl">
         
         <div class="modal-header">
@@ -1819,7 +1827,7 @@
     <!-- ========================================================= -->
     <!-- 移动端专属：更多功能抽屉 (Mobile More Drawer) -->
     <!-- ========================================================= -->
-    <div v-if="modals.moreSettings || mobileMoreDrawer" class="modal-overlay" @click.self="modals.moreSettings = false; mobileMoreDrawer = false; currentNavTab = 'calendar'">
+    <div v-if="modals.moreSettings || mobileMoreDrawer" class="modal-overlay" @click.self="handleOverlayClick('moreSettings')">
       <div class="modal-card !max-w-md">
         <div class="sheet-drag-handle"></div>
         <div class="flex items-center justify-between px-4 pb-2 border-b border-slate-100 dark:border-slate-800">
@@ -1828,47 +1836,47 @@
         </div>
 
         <div class="p-4 grid grid-cols-3 gap-2.5 text-center">
-          <button @click="openSubModal('cloudSync')" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 flex flex-col items-center gap-1.5 hover:border-blue-500">
+          <button @click.stop="openSubModal('cloudSync')" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 flex flex-col items-center gap-1.5 hover:border-blue-500">
             <span class="text-xl">☁️</span>
             <span class="text-xs font-semibold text-slate-700 dark:text-slate-200">云端同步</span>
           </button>
 
-          <button @click="openSubModal('personSettings')" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 flex flex-col items-center gap-1.5 hover:border-blue-500">
+          <button @click.stop="openSubModal('personSettings')" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 flex flex-col items-center gap-1.5 hover:border-blue-500">
             <span class="text-xl">👥</span>
             <span class="text-xs font-semibold text-slate-700 dark:text-slate-200">双人称谓</span>
           </button>
 
-          <button @click="openSubModal('holidayCalendar')" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 flex flex-col items-center gap-1.5 hover:border-blue-500">
+          <button @click.stop="openSubModal('holidayCalendar')" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 flex flex-col items-center gap-1.5 hover:border-blue-500">
             <span class="text-xl">🇨🇳</span>
             <span class="text-xs font-semibold text-slate-700 dark:text-slate-200">法定节假日</span>
           </button>
 
-          <button @click="openSubModal('shiftManage')" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 flex flex-col items-center gap-1.5 hover:border-blue-500">
+          <button @click.stop="openSubModal('shiftManage')" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 flex flex-col items-center gap-1.5 hover:border-blue-500">
             <span class="text-xl">📋</span>
             <span class="text-xs font-semibold text-slate-700 dark:text-slate-200">班次管理</span>
           </button>
 
-          <button @click="openSubModal('rotationManage')" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 flex flex-col items-center gap-1.5 hover:border-blue-500">
+          <button @click.stop="openSubModal('rotationManage')" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 flex flex-col items-center gap-1.5 hover:border-blue-500">
             <span class="text-xl">🔄</span>
             <span class="text-xs font-semibold text-slate-700 dark:text-slate-200">轮班方案</span>
           </button>
 
-          <button @click="openSubModal('historyManage')" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 flex flex-col items-center gap-1.5 hover:border-blue-500">
+          <button @click.stop="openSubModal('historyManage')" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 flex flex-col items-center gap-1.5 hover:border-blue-500">
             <span class="text-xl">🛡️</span>
             <span class="text-xs font-semibold text-slate-700 dark:text-slate-200">历史与撤回</span>
           </button>
 
-          <button @click="openSubModal('clearConfirm')" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 flex flex-col items-center gap-1.5 hover:border-red-500">
+          <button @click.stop="openSubModal('clearConfirm')" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 flex flex-col items-center gap-1.5 hover:border-red-500">
             <span class="text-xl">🗑️</span>
             <span class="text-xs font-semibold text-red-600 dark:text-red-400">批量清空</span>
           </button>
 
-          <button @click="openSubModal('exportImport')" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 flex flex-col items-center gap-1.5 hover:border-blue-500">
+          <button @click.stop="openSubModal('exportImport')" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 flex flex-col items-center gap-1.5 hover:border-blue-500">
             <span class="text-xl">💾</span>
             <span class="text-xs font-semibold text-slate-700 dark:text-slate-200">备份导出</span>
           </button>
 
-          <button @click="toggleTheme()" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 flex flex-col items-center gap-1.5 hover:border-blue-500">
+          <button @click.stop="toggleTheme()" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 flex flex-col items-center gap-1.5 hover:border-blue-500">
             <span class="text-xl">{{ theme === 'light' ? '🌙' : '☀️' }}</span>
             <span class="text-xs font-semibold text-slate-700 dark:text-slate-200">{{ theme === 'light' ? '深色模式' : '浅色模式' }}</span>
           </button>
@@ -1905,7 +1913,7 @@
     }
   </script>
 
-  <!-- 引入应用核心逻辑 -->
-  <script src="app.js"></script>
+  <!-- 引入应用核心逻辑 (带版本号强刷缓存) -->
+  <script src="app.js?v=20260930_1605"></script>
 </body>
 </html>

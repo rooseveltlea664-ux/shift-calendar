@@ -674,6 +674,7 @@ const app = Vue.createApp({
 
     switchNavTab(tab) {
       this.currentNavTab = tab;
+      this._modalOpenTime = Date.now();
       // 复位所有弹窗，确保同一时刻仅呈现唯一的最新交互层
       Object.keys(this.modals).forEach(k => {
         this.modals[k] = false;
@@ -694,14 +695,34 @@ const app = Vue.createApp({
     },
 
     openSubModal(modalName) {
-      // 核心调整：进入二级菜单时自动关闭“我的”抽屉，仅保留最新交互弹窗
-      Object.keys(this.modals).forEach(k => {
-        this.modals[k] = false;
-      });
+      // 1. 先关闭当前菜单抽屉，记录切换时间戳
+      this._modalOpenTime = Date.now();
+      this.modals.moreSettings = false;
       this.mobileMoreDrawer = false;
 
+      // 2. 延迟 90ms 开启目标弹窗，彻底规避移动端合成事件穿透 (Ghost Click) 与动画首帧遮罩误触关闭
+      setTimeout(() => {
+        if (modalName && this.modals[modalName] !== undefined) {
+          Object.keys(this.modals).forEach(k => {
+            if (k !== modalName) this.modals[k] = false;
+          });
+          this.modals[modalName] = true;
+          this._modalOpenTime = Date.now();
+        }
+      }, 90);
+    },
+
+    handleOverlayClick(modalName) {
+      // 刚打开 280ms 内忽略遮罩点击，杜绝移动端穿透误关
+      if (this._modalOpenTime && (Date.now() - this._modalOpenTime < 280)) {
+        return;
+      }
       if (modalName && this.modals[modalName] !== undefined) {
-        this.modals[modalName] = true;
+        this.modals[modalName] = false;
+      }
+      if (modalName === 'moreSettings') {
+        this.mobileMoreDrawer = false;
+        this.currentNavTab = 'calendar';
       }
     },
 
