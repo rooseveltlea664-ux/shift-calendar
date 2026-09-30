@@ -1,0 +1,7 @@
+{
+  "version": 2,
+  "rewrites": [
+    { "source": "/api/sync/:roomId/events", "destination": "/api/sync?roomId=:roomId&events=true" },
+    { "source": "/api/sync/:roomId", "destination": "/api/sync?roomId=:roomId" }
+  ]
+}

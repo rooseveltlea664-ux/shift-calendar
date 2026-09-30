@@ -15,7 +15,17 @@ module.exports = async (req, res) => {
     return;
   }
 
-  const roomId = (req.query.roomId || req.headers['x-room-id'] || '').trim();
+  let roomId = (req.query && req.query.roomId ? req.query.roomId : '').trim();
+  if (!roomId && req.url) {
+    const match = req.url.match(/\/api\/sync\/([^/?#]+)/);
+    if (match) {
+      roomId = decodeURIComponent(match[1]).trim();
+    }
+  }
+  if (!roomId && req.headers['x-room-id']) {
+    roomId = String(req.headers['x-room-id']).trim();
+  }
+
   if (!roomId) {
     res.status(400).json({ error: 'Missing roomId query parameter or header' });
     return;
