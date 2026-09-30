@@ -1,43 +1,62 @@
 /* ============================================================
-   智巡排班 (ShiftMaster) - 现代化排班日历样式表
+   智巡排班 (ShiftMaster) - 现代化排班日历系统
+   基于 UI/UX ProMax 设计规范：简洁克制、网格律动、突出日历主体
    ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 :root {
   --bg-primary: #f8fafc;
   --bg-surface: #ffffff;
   --bg-secondary: #f1f5f9;
   --border-color: #e2e8f0;
-  --border-focus: #3b82f6;
+  --border-subtle: #edf2f7;
+  --border-focus: #2563eb;
   --text-primary: #0f172a;
   --text-secondary: #475569;
   --text-muted: #94a3b8;
-  --accent-color: #3b82f6;
-  --accent-hover: #2563eb;
+  --accent-color: #2563eb;
+  --accent-hover: #1d4ed8;
   --accent-light: #eff6ff;
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --accent-ring: rgba(37, 99, 235, 0.15);
+  --success-color: #059669;
+  --success-bg: #ecfdf5;
+  --success-border: #a7f3d0;
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.04);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.06);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.04);
+  --radius-xs: 4px;
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 16px;
-  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --radius-xl: 20px;
+  --font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
 }
 
 [data-theme="dark"] {
-  --bg-primary: #0b1120;
-  --bg-surface: #1e293b;
-  --bg-secondary: #0f172a;
-  --border-color: #334155;
-  --border-focus: #60a5fa;
+  --bg-primary: #090d16;
+  --bg-surface: #111827;
+  --bg-secondary: #0d1320;
+  --border-color: #1f293d;
+  --border-subtle: #172033;
+  --border-focus: #3b82f6;
   --text-primary: #f8fafc;
   --text-secondary: #cbd5e1;
   --text-muted: #64748b;
   --accent-color: #3b82f6;
   --accent-hover: #60a5fa;
-  --accent-light: rgba(59, 130, 246, 0.15);
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --accent-light: rgba(59, 130, 246, 0.12);
+  --accent-ring: rgba(59, 130, 246, 0.25);
+  --success-color: #10b981;
+  --success-bg: rgba(16, 185, 129, 0.12);
+  --success-border: rgba(52, 211, 153, 0.3);
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.4);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.6);
 }
 
 [v-cloak] {
@@ -56,11 +75,13 @@ body {
   color: var(--text-primary);
   min-height: 100vh;
   line-height: 1.5;
-  transition: background-color 0.25s ease, color 0.25s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* 滚动条美化 */
+/* 滚动条轻量美化 */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -73,86 +94,95 @@ body {
   border-radius: 4px;
 }
 [data-theme="dark"] ::-webkit-scrollbar-thumb {
-  background: #475569;
+  background: #334155;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
 
-/* 按钮通用 */
+/* 按钮通用系统 (基于 UI/UX ProMax 规范) */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 8px 16px;
-  font-size: 14px;
+  padding: 7px 14px;
+  font-size: 13px;
   font-weight: 500;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   border: 1px solid transparent;
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: all 0.16s cubic-bezier(0.16, 1, 0.3, 1);
   user-select: none;
   white-space: nowrap;
+  line-height: 1.25;
 }
 .btn:active {
-  transform: scale(0.98);
+  transform: scale(0.97);
 }
 .btn-primary {
   background-color: var(--accent-color);
   color: #ffffff;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.35);
+  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 .btn-primary:hover {
   background-color: var(--accent-hover);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.45);
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.28);
 }
 .btn-outline {
   background-color: var(--bg-surface);
   color: var(--text-primary);
   border-color: var(--border-color);
+  box-shadow: var(--shadow-xs);
 }
 .btn-outline:hover {
   background-color: var(--bg-secondary);
-  border-color: var(--border-focus);
+  border-color: #cbd5e1;
+  color: var(--text-primary);
+}
+[data-theme="dark"] .btn-outline:hover {
+  border-color: #475569;
 }
 .btn-secondary {
   background-color: var(--bg-secondary);
   color: var(--text-secondary);
+  border-color: transparent;
 }
 .btn-secondary:hover {
   background-color: var(--border-color);
   color: var(--text-primary);
 }
 .btn-danger {
-  background-color: #ef4444;
-  color: #fff;
+  background-color: #dc2626;
+  color: #ffffff;
+  box-shadow: 0 1px 2px rgba(220, 38, 38, 0.2);
 }
 .btn-danger:hover {
-  background-color: #dc2626;
+  background-color: #b91c1c;
 }
 .btn-sm {
-  padding: 4px 10px;
+  padding: 4px 9px;
   font-size: 12px;
   border-radius: var(--radius-sm);
 }
 .btn-icon {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   padding: 0;
-  border-radius: 50%;
+  border-radius: var(--radius-sm);
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
 
-/* 日历网格核心样式 */
+/* 日历网格核心样式 (突出主体、清晰层级) */
 .calendar-container {
   background: var(--bg-surface);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-sm);
   overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .calendar-header-weekdays {
@@ -162,12 +192,13 @@ body {
   border-bottom: 1px solid var(--border-color);
   text-align: center;
   font-weight: 600;
-  font-size: 13px;
+  font-size: 12px;
+  letter-spacing: 0.5px;
   color: var(--text-secondary);
   padding: 10px 0;
 }
 .calendar-header-weekdays .weekend {
-  color: #ef4444;
+  color: #f43f5e;
 }
 
 .calendar-grid {
@@ -179,63 +210,65 @@ body {
 
 .calendar-cell {
   background: var(--bg-surface);
-  min-height: 118px;
-  padding: 5px 6px;
+  min-height: 124px;
+  padding: 6px 7px;
   display: flex;
   flex-direction: column;
   position: relative;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.12s ease, box-shadow 0.12s ease;
 }
 
 .calendar-cell:hover {
-  background-color: var(--accent-light);
+  background-color: rgba(37, 99, 235, 0.04);
   z-index: 2;
 }
+[data-theme="dark"] .calendar-cell:hover {
+  background-color: rgba(59, 130, 246, 0.08);
+}
 
-/* 共同休息日特殊背景与柔和高亮 */
+/* 共同休息日特殊背景与清新绿意高亮 */
 .calendar-cell.is-mutual-rest {
-  background-color: #f0fdf4 !important;
-  box-shadow: inset 0 0 0 1.5px #86efac;
+  background-color: #f2fbf6 !important;
+  box-shadow: inset 0 0 0 1px #a7f3d0;
 }
 [data-theme="dark"] .calendar-cell.is-mutual-rest {
-  background-color: rgba(16, 185, 129, 0.12) !important;
-  box-shadow: inset 0 0 0 1.5px rgba(52, 211, 153, 0.4);
+  background-color: rgba(16, 185, 129, 0.09) !important;
+  box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.3);
 }
 
 .mutual-rest-badge {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 2.5px;
   padding: 1px 5px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   font-size: 10px;
   font-weight: 700;
-  color: #065f46;
+  color: #047857;
   background: #d1fae5;
   border: 1px solid #a7f3d0;
-  margin-top: 3px;
-  box-shadow: 0 1px 2px rgba(16, 185, 129, 0.12);
   white-space: nowrap;
+  letter-spacing: 0.2px;
 }
 [data-theme="dark"] .mutual-rest-badge {
   color: #6ee7b7;
-  background: rgba(16, 185, 129, 0.25);
+  background: rgba(16, 185, 129, 0.22);
   border-color: rgba(52, 211, 153, 0.35);
 }
 
-/* 双人排班胶囊行 */
+/* 双人排班胶囊行 (轻量微质感，无厚重边框) */
 .person-shift-pill {
   margin-top: 3px;
-  padding: 2.5px 5px;
-  border-radius: 5px;
+  padding: 2.5px 6px;
+  border-radius: 6px;
   font-size: 11px;
   font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-  transition: transform 0.1s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  transition: transform 0.1s ease, opacity 0.15s ease;
 }
 .person-shift-pill:hover {
   transform: translateY(-0.5px);
@@ -246,76 +279,49 @@ body {
   padding: 0.5px 3.5px;
   border-radius: 3px;
   margin-right: 4px;
-  background: rgba(0, 0, 0, 0.18);
+  background: rgba(0, 0, 0, 0.16);
   flex-shrink: 0;
+  letter-spacing: 0.2px;
 }
 
 .calendar-cell.other-month {
-  background-color: rgba(241, 245, 249, 0.4);
-  opacity: 0.55;
+  background-color: rgba(248, 250, 252, 0.6);
+  opacity: 0.45;
 }
 [data-theme="dark"] .calendar-cell.other-month {
-  background-color: rgba(15, 23, 42, 0.5);
-  opacity: 0.35;
+  background-color: rgba(15, 23, 42, 0.6);
+  opacity: 0.3;
 }
 
-.calendar-cell.is-today {
-  box-shadow: inset 0 0 0 2px var(--accent-color);
-}
-.calendar-cell.is-today::before {
-  content: "今日";
-  position: absolute;
-  top: 4px;
-  right: 6px;
-  font-size: 10px;
+/* 今日醒目标识 (极简圆标，不遮挡任何排班信息) */
+.calendar-cell.is-today .cell-date-num {
+  background-color: var(--accent-color);
+  color: #ffffff !important;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-weight: 700;
-  color: var(--accent-color);
-  background: var(--accent-light);
-  padding: 1px 4px;
-  border-radius: 4px;
+  font-size: 12px;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.35);
 }
 
 .cell-date-num {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
   line-height: 1.2;
+  transition: color 0.15s ease;
 }
 .weekend .cell-date-num {
-  color: #ef4444;
-}
-
-/* 班次卡片标签 */
-.shift-tag {
-  margin-top: 6px;
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  transition: transform 0.12s ease;
-  user-select: none;
-}
-.shift-tag:hover {
-  transform: translateY(-1px);
-}
-.shift-tag-code {
-  font-size: 11px;
-  opacity: 0.9;
-  letter-spacing: 0.5px;
-}
-.shift-tag-time {
-  font-size: 10px;
-  opacity: 0.85;
-  font-weight: 400;
+  color: #e11d48;
 }
 
 /* 空白班次占位提示 */
 .empty-shift-hint {
-  margin-top: 8px;
+  margin-top: 6px;
   font-size: 11px;
   color: var(--text-muted);
   border: 1px dashed var(--border-color);
@@ -326,19 +332,19 @@ body {
   transition: opacity 0.15s ease;
 }
 .calendar-cell:hover .empty-shift-hint {
-  opacity: 1;
+  opacity: 0.85;
 }
 
 /* 备注小徽章 */
 .cell-remark-badge {
-  margin-top: 4px;
+  margin-top: 3px;
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 11px;
+  gap: 3px;
+  font-size: 10px;
   color: var(--text-secondary);
   background: var(--bg-secondary);
-  padding: 2px 6px;
+  padding: 1.5px 5px;
   border-radius: 4px;
   overflow: hidden;
   text-overflow: ellipsis;

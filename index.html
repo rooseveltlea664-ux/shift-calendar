@@ -28,53 +28,53 @@
   <div id="app" v-cloak class="min-h-screen flex flex-col">
 
     <!-- 顶部应用导航栏 (Header) -->
-    <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-30 transition-colors shadow-sm">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    <header class="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 sticky top-0 z-30 transition-colors shadow-xs">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-15 flex items-center justify-between gap-4">
         
         <!-- 左侧 Logo 与产品标识 -->
-        <div class="flex items-center space-x-3">
-          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-pink-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/25">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+        <div class="flex items-center space-x-3 shrink-0">
+          <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-xs">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
             </svg>
           </div>
           <div>
-            <h1 class="text-lg font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-              智巡排班
-              <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-gradient-to-r from-blue-100 to-pink-100 text-indigo-700 dark:from-blue-900/60 dark:to-pink-900/60 dark:text-pink-300">
-                双人协同版
+            <div class="flex items-center gap-2">
+              <h1 class="text-base font-bold tracking-tight text-slate-900 dark:text-white">
+                智巡排班
+              </h1>
+              <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-900/40">
+                双人协同
               </span>
-            </h1>
-            <p class="text-xs text-slate-500 dark:text-slate-400">双人排班对比 · 共同休息日识别 · 智能轮班</p>
+            </div>
+            <p class="text-[11px] text-slate-400 dark:text-slate-500 leading-tight">日历排班 · 共同休息日识别 · 云同步</p>
           </div>
         </div>
 
-        <!-- 中间：月份切换与控制器 -->
-        <div class="flex items-center space-x-2">
-          <button @click="prevMonth" class="btn btn-outline btn-sm !p-2" title="上个月">
+        <!-- 中间：月份控制器 (现代胶囊控制组) -->
+        <div class="flex items-center bg-slate-100 dark:bg-slate-800/80 p-0.5 rounded-lg border border-slate-200/60 dark:border-slate-700/60">
+          <button @click="prevMonth" class="p-1.5 rounded-md hover:bg-white dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors" title="上个月">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
             </svg>
           </button>
           
-          <div class="flex items-center gap-1.5 px-3 py-1 bg-slate-100 dark:bg-slate-700/60 rounded-lg">
-            <span class="text-base font-bold text-slate-800 dark:text-slate-100 min-w-[110px] text-center tracking-wide">
-              {{ currentMonthTitle }}
-            </span>
-          </div>
+          <span class="text-xs font-bold text-slate-800 dark:text-slate-100 min-w-[100px] text-center tracking-wide px-2">
+            {{ currentMonthTitle }}
+          </span>
 
-          <button @click="nextMonth" class="btn btn-outline btn-sm !p-2" title="下个月">
+          <button @click="nextMonth" class="p-1.5 rounded-md hover:bg-white dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors" title="下个月">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
             </svg>
           </button>
 
-          <button @click="goToToday" class="btn btn-outline btn-sm font-semibold ml-1">
+          <button @click="goToToday" class="ml-1 px-2.5 py-1 text-xs font-semibold rounded-md bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 shadow-xs hover:text-blue-600 transition-colors">
             今天
           </button>
         </div>
 
-        <!-- 右侧：主要功能操作区 -->
+        <!-- 右侧：结构化功能操作区 (主次分明、向量图标) -->
         <div class="flex items-center space-x-2">
           
           <!-- ☁️ 云端双人实时同步状态指示器 -->
@@ -99,66 +99,98 @@
               <span v-if="syncConfig.status === 'syncing'" class="text-[10px] font-normal animate-pulse">(同步中)</span>
             </span>
             <span v-else class="flex items-center gap-1 font-medium">
-              <span>☁️ 云端同步</span>
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 00-9.78 2.096A4.001 4.001 0 003 15z"></path>
+              </svg>
+              <span>云同步</span>
             </span>
           </button>
 
-          <!-- 开启轮班排班按钮 (核心亮点) -->
-          <button @click="modals.applyRotation = true" class="btn btn-primary shadow-sm text-sm">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          <!-- 核心主行动点：开启轮班排班按钮 (Primary CTA) -->
+          <button @click="modals.applyRotation = true" class="btn btn-primary shadow-xs text-xs font-semibold">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
             </svg>
             <span>开启轮班</span>
           </button>
 
-          <!-- 批量/一键清空排班 (新功能 1) -->
-          <button @click="promptClearAll" class="btn btn-outline btn-sm text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/60 hover:bg-red-50 dark:hover:bg-red-950/40" title="批量清空排班 (带二次防误触确认与快照备份)">
-            <span>🗑️ 清空</span>
-          </button>
+          <!-- 快捷操作工具组 -->
+          <div class="flex items-center gap-1 border-l border-slate-200 dark:border-slate-700/80 pl-2">
+            
+            <!-- 批量清空 -->
+            <button @click="promptClearAll" class="btn btn-outline btn-sm text-slate-600 hover:text-red-600 dark:text-slate-300 dark:hover:text-red-400" title="批量清空排班 (带二次安全确认)">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+              </svg>
+              <span class="hidden sm:inline">清空</span>
+            </button>
 
-          <!-- 操作历史记录与撤销 (新功能 1-1) -->
-          <button @click="modals.historyManage = true" class="btn btn-outline btn-sm relative" title="查看操作快照，支持一键撤回恢复与删除历史">
-            <span>🕒 历史</span>
-            <span v-if="historySnapshots.length > 0" class="absolute -top-1.5 -right-1.5 px-1.5 py-0.2 bg-blue-600 text-white rounded-full text-[10px] font-bold">
-              {{ historySnapshots.length }}
-            </span>
-          </button>
+            <!-- 操作历史记录与撤销 -->
+            <button @click="modals.historyManage = true" class="btn btn-outline btn-sm relative text-slate-600 dark:text-slate-300" title="查看操作快照，支持一键撤回恢复">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <span class="hidden sm:inline">历史</span>
+              <span v-if="historySnapshots.length > 0" class="absolute -top-1 -right-1 px-1.5 py-0.2 bg-blue-600 text-white rounded-full text-[9px] font-bold">
+                {{ historySnapshots.length }}
+              </span>
+            </button>
 
-          <!-- 法定节假日全景查询 (新功能 2) -->
-          <button @click="modals.holidayCalendar = true" class="btn btn-outline btn-sm text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/50" title="查询国务院中国法定节假日及调休补班安排">
-            <span>🇨🇳 假日</span>
-          </button>
+            <!-- 法定节假日查询 -->
+            <button @click="modals.holidayCalendar = true" class="btn btn-outline btn-sm text-slate-600 dark:text-slate-300" title="查询国务院中国法定节假日及调休安排">
+              <svg class="w-3.5 h-3.5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"></path>
+              </svg>
+              <span class="hidden sm:inline">假日</span>
+            </button>
 
-          <!-- 双人身份与称谓设置 -->
-          <button @click="modals.personSettings = true" class="btn btn-outline btn-sm hidden sm:inline-flex">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+          </div>
+
+          <!-- 系统设置配置组 (大屏展开) -->
+          <div class="flex items-center gap-1 border-l border-slate-200 dark:border-slate-700/80 pl-2">
+            
+            <!-- 双人设置 -->
+            <button @click="modals.personSettings = true" class="btn btn-outline btn-sm hidden sm:inline-flex text-slate-600 dark:text-slate-300" title="设置两人称谓与专属代表色">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+              </svg>
+              <span>双人</span>
+            </button>
+
+            <!-- 班次配置 -->
+            <button @click="modals.shiftManage = true" class="btn btn-outline btn-sm hidden lg:inline-flex text-slate-600 dark:text-slate-300" title="管理自定义班次与颜色">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4 5 5 0 015-5 4 4 0 014 4 5 5 0 01-5 5zm0 0h12a2 2 0 002-2v-3a2 2 0 00-2-2h-3m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+              </svg>
+              <span>班次</span>
+            </button>
+
+            <!-- 轮班方案 -->
+            <button @click="modals.rotationManage = true" class="btn btn-outline btn-sm hidden lg:inline-flex text-slate-600 dark:text-slate-300" title="轮班方案管理">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+              </svg>
+              <span>轮班方案</span>
+            </button>
+
+            <!-- 导入导出 -->
+            <button @click="modals.exportImport = true" class="btn btn-outline btn-sm hidden md:inline-flex text-slate-600 dark:text-slate-300" title="备份、导入与数据导出">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+              </svg>
+              <span>导出</span>
+            </button>
+
+          </div>
+
+          <!-- 主题切换 (矢量矢量太阳/月亮) -->
+          <button @click="toggleTheme" class="btn btn-outline btn-sm !p-2 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200" :title="theme === 'light' ? '切换到深色模式' : '切换到浅色模式'">
+            <svg v-if="theme === 'light'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
             </svg>
-            <span>双人设置</span>
-          </button>
-
-          <!-- 班次管理 -->
-          <button @click="modals.shiftManage = true" class="btn btn-outline btn-sm hidden lg:inline-flex">
-            <span>班次配置</span>
-          </button>
-
-          <!-- 轮班方案 -->
-          <button @click="modals.rotationManage = true" class="btn btn-outline btn-sm hidden lg:inline-flex">
-            <span>轮班方案</span>
-          </button>
-
-          <!-- 导入导出 -->
-          <button @click="modals.exportImport = true" class="btn btn-outline btn-sm hidden md:inline-flex" title="导出/备份数据">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+            <svg v-else class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
             </svg>
-            <span>导入/导出</span>
-          </button>
-
-          <!-- 主题切换 -->
-          <button @click="toggleTheme" class="btn btn-outline btn-sm !p-2 rounded-full" :title="theme === 'light' ? '深色模式' : '浅色模式'">
-            <span v-if="theme === 'light'">🌙</span>
-            <span v-else>☀️</span>
           </button>
         </div>
 
@@ -171,75 +203,77 @@
       <!-- 左侧：核心日历视图 -->
       <section class="flex-1 flex flex-col">
 
-        <!-- 顶部操作条：双人视图切换 + 班次图例 + 年月跳转 -->
-        <div class="mb-4 flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+        <!-- 顶部操作条：双人视图切换 + 班次图例 + 年月跳转 (极简克制) -->
+        <div class="mb-3.5 flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 p-2.5 sm:p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
           
-          <!-- 双人视图模式切换胶囊 (核心新功能) -->
-          <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-700/60 p-1 rounded-lg">
+          <!-- 双人视图模式切换胶囊 -->
+          <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-0.5 rounded-lg border border-slate-200/50 dark:border-slate-700/50">
             <button 
               @click="setViewMode('both')"
-              class="px-2.5 py-1 text-xs font-bold rounded-md transition-all flex items-center gap-1.5"
-              :class="viewMode === 'both' ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'"
+              class="px-2.5 py-1 text-xs font-semibold rounded-md transition-all flex items-center gap-1.5"
+              :class="viewMode === 'both' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs font-bold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'"
             >
-              <span>👥 双人同看</span>
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+              </svg>
+              <span>双人同看</span>
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
             </button>
 
             <button 
               @click="setViewMode('p1')"
-              class="px-2.5 py-1 text-xs font-semibold rounded-md transition-all flex items-center gap-1"
-              :class="viewMode === 'p1' ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs font-bold' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'"
+              class="px-2.5 py-1 text-xs font-semibold rounded-md transition-all flex items-center gap-1.5"
+              :class="viewMode === 'p1' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs font-bold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'"
             >
               <span class="w-2 h-2 rounded-full" :style="{ backgroundColor: p1Info.badgeColor }"></span>
-              <span>仅看【{{ p1Info.name }}】</span>
+              <span>仅看 {{ p1Info.name }}</span>
             </button>
 
             <button 
               @click="setViewMode('p2')"
-              class="px-2.5 py-1 text-xs font-semibold rounded-md transition-all flex items-center gap-1"
-              :class="viewMode === 'p2' ? 'bg-white dark:bg-slate-800 text-pink-600 dark:text-pink-400 shadow-xs font-bold' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'"
+              class="px-2.5 py-1 text-xs font-semibold rounded-md transition-all flex items-center gap-1.5"
+              :class="viewMode === 'p2' ? 'bg-white dark:bg-slate-700 text-pink-600 dark:text-pink-400 shadow-xs font-bold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'"
             >
               <span class="w-2 h-2 rounded-full" :style="{ backgroundColor: p2Info.badgeColor }"></span>
-              <span>仅看【{{ p2Info.name }}】</span>
+              <span>仅看 {{ p2Info.name }}</span>
             </button>
           </div>
 
           <!-- 快捷图例提示 -->
-          <div class="flex items-center gap-2 flex-wrap text-xs">
-            <span class="text-emerald-700 dark:text-emerald-400 font-bold px-2 py-0.5 rounded bg-emerald-100/80 dark:bg-emerald-950/60 flex items-center gap-1 border border-emerald-200 dark:border-emerald-800">
-              <span>🎉</span>
-              <span>两人同休 (共 {{ monthlyStats.mutualRestCount }} 天)</span>
+          <div class="flex items-center gap-1.5 flex-wrap text-xs">
+            <span class="text-emerald-700 dark:text-emerald-400 font-semibold px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 flex items-center gap-1 border border-emerald-200/80 dark:border-emerald-800/60 text-[11px]">
+              <span class="text-emerald-500 font-bold">✦</span>
+              <span>同休 ({{ monthlyStats.mutualRestCount }}天)</span>
             </span>
 
             <div 
               v-for="shift in shiftTypes" 
               :key="shift.id"
               @click="filterShiftId = filterShiftId === shift.id ? '' : shift.id"
-              class="flex items-center gap-1 px-2 py-0.5 rounded cursor-pointer transition-all border text-[11px]"
-              :class="filterShiftId === shift.id ? 'ring-2 ring-blue-500 font-bold' : 'hover:opacity-85'"
-              :style="{ backgroundColor: shift.color + '15', borderColor: shift.color, color: shift.color }"
+              class="flex items-center gap-1 px-2 py-0.5 rounded-md cursor-pointer transition-all border text-[11px]"
+              :class="filterShiftId === shift.id ? 'ring-2 ring-blue-500 font-bold' : 'hover:opacity-85 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800'"
               :title="'点击过滤 ' + shift.name"
             >
               <span class="w-2 h-2 rounded-full" :style="{ backgroundColor: shift.color }"></span>
-              <span>{{ shift.name }}</span>
+              <span class="text-slate-700 dark:text-slate-300 font-medium">{{ shift.name }}</span>
             </div>
 
-            <button v-if="filterShiftId" @click="filterShiftId = ''" class="text-xs text-blue-600 underline">
-              清除过滤
+            <button v-if="filterShiftId" @click="filterShiftId = ''" class="text-xs text-blue-600 dark:text-blue-400 hover:underline ml-1">
+              重置
             </button>
           </div>
 
           <!-- 年月快速跳转快捷输入 -->
-          <div class="flex items-center gap-1.5 text-xs">
-            <input type="number" v-model="jumpYearInput" min="2000" max="2099" class="w-16 px-1.5 py-1 border border-slate-200 dark:border-slate-600 rounded bg-transparent dark:text-white text-center">
-            <span class="text-slate-400">年</span>
-            <input type="number" v-model="jumpMonthInput" min="1" max="12" class="w-12 px-1.5 py-1 border border-slate-200 dark:border-slate-600 rounded bg-transparent dark:text-white text-center">
-            <span class="text-slate-400">月</span>
-            <button @click="applyJump" class="btn btn-secondary btn-sm !py-1 !px-2">跳转</button>
+          <div class="flex items-center gap-1 text-xs">
+            <input type="number" v-model="jumpYearInput" min="2000" max="2099" class="w-15 px-1.5 py-0.5 border border-slate-200 dark:border-slate-700 rounded bg-transparent dark:text-white text-center text-xs">
+            <span class="text-slate-400 text-[11px]">年</span>
+            <input type="number" v-model="jumpMonthInput" min="1" max="12" class="w-10 px-1 py-0.5 border border-slate-200 dark:border-slate-700 rounded bg-transparent dark:text-white text-center text-xs">
+            <span class="text-slate-400 text-[11px]">月</span>
+            <button @click="applyJump" class="btn btn-secondary btn-sm !py-0.5 !px-2 text-xs">跳至</button>
           </div>
         </div>
 
-        <!-- 现代化日历网格 -->
+        <!-- 现代化日历网格 (Hero 视觉中心) -->
         <div class="calendar-container flex-1">
           <!-- 星期标头 (周一至周日) -->
           <div class="calendar-header-weekdays">
@@ -267,11 +301,11 @@
               @click="handleCellClick(cell)"
             >
               <!-- 日期数字、节日与共同休息标识 -->
-              <div class="flex items-baseline justify-between">
+              <div class="flex items-center justify-between mb-1">
                 <span class="cell-date-num">{{ cell.dayNumber }}</span>
                 
                 <div class="flex items-center gap-1 flex-wrap justify-end">
-                  <!-- 中国法定放假 [休] 或 调休补班 [班] (新功能 2) -->
+                  <!-- 中国法定放假 [休] 或 调休补班 [班] -->
                   <span 
                     v-if="cell.holInfo" 
                     :class="cell.holInfo.isHoliday ? 'statutory-badge-holiday' : 'statutory-badge-work'"
@@ -281,13 +315,13 @@
                   </span>
 
                   <!-- 传统公历节日 -->
-                  <span v-else-if="cell.holiday" class="text-[10px] font-medium text-red-500 truncate max-w-[45px]">
+                  <span v-else-if="cell.holiday" class="text-[10px] font-medium text-rose-500 dark:text-rose-400 truncate max-w-[45px]">
                     {{ cell.holiday }}
                   </span>
                   
-                  <!-- 两人同休小星星徽章 -->
+                  <!-- 两人同休小星标徽章 -->
                   <span v-if="cell.isMutualRest" class="mutual-rest-badge" title="两人共同休息日！">
-                    <span>🎉</span>
+                    <span>✦</span>
                     <span>同休</span>
                   </span>
                 </div>
@@ -400,35 +434,37 @@
             </span>
           </div>
 
-          <!-- TAB 1: 共同休息日核心汇总 (用户明确要求亮点) -->
+          <!-- TAB 1: 共同休息日核心汇总 -->
           <div v-if="statsTab === 'summary'" class="space-y-4">
             
             <!-- 共同休息日大卡片 -->
-            <div class="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/30 p-4 rounded-xl border border-emerald-200 dark:border-emerald-800/60 shadow-xs">
+            <div class="bg-gradient-to-br from-emerald-50/90 to-teal-50/70 dark:from-emerald-950/40 dark:to-teal-950/30 p-4 rounded-xl border border-emerald-200/80 dark:border-emerald-800/60 shadow-xs">
               <div class="flex items-center justify-between">
                 <div>
-                  <div class="text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
-                    <span>🎉</span>
-                    <span>本月两人共同休息日</span>
+                  <div class="text-xs font-semibold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                    <span class="text-emerald-500 font-bold">✦</span>
+                    <span>本月两人共同休息</span>
                   </div>
-                  <div class="text-3xl font-black text-emerald-700 dark:text-emerald-300 mt-1">
-                    {{ monthlyStats.mutualRestCount }} <span class="text-sm font-medium">天</span>
+                  <div class="text-3xl font-bold tracking-tight text-emerald-700 dark:text-emerald-300 mt-1">
+                    {{ monthlyStats.mutualRestCount }} <span class="text-xs font-normal text-emerald-600 dark:text-emerald-400">天</span>
                   </div>
                 </div>
-                <div class="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/60 flex items-center justify-center text-2xl shadow-inner">
-                  🏖️
+                <div class="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/60 flex items-center justify-center text-emerald-600 dark:text-emerald-300">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
                 </div>
               </div>
-              <p class="text-[11px] text-emerald-700/80 dark:text-emerald-400/80 mt-2">
-                适合一同出游、约会、聚餐与家庭团聚的美好时光！
+              <p class="text-[11px] text-emerald-700/80 dark:text-emerald-400/80 mt-2 leading-relaxed">
+                双方同日轮休的时间段，可用于提前规划出游与聚会。
               </p>
             </div>
 
             <!-- 共同休息日日期清单 -->
             <div>
-              <div class="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center justify-between">
-                <span>共同休息日期列表：</span>
-                <span class="text-[11px] text-slate-400 font-normal">点击日期可查看</span>
+              <div class="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2 flex items-center justify-between">
+                <span>共同休息日期：</span>
+                <span class="text-[10px] text-slate-400 font-normal">点击日期即可跳转</span>
               </div>
 
               <div v-if="monthlyStats.mutualRestList.length > 0" class="grid grid-cols-2 gap-2">
@@ -553,8 +589,10 @@
               </svg>
               导出双人报表
             </button>
-            <button @click="printPage" class="btn btn-outline btn-sm !px-3 text-xs" title="打印排班表">
-              🖨️
+            <button @click="printPage" class="btn btn-outline btn-sm !px-3 text-xs text-slate-600 dark:text-slate-300" title="打印排班表">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+              </svg>
             </button>
           </div>
 
