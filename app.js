@@ -674,12 +674,14 @@ const app = Vue.createApp({
 
     switchNavTab(tab) {
       this.currentNavTab = tab;
+      // 复位所有弹窗，确保同一时刻仅呈现唯一的最新交互层
+      Object.keys(this.modals).forEach(k => {
+        this.modals[k] = false;
+      });
+      this.mobileMoreDrawer = false;
+
       if (tab === 'calendar') {
-        this.modals.shiftManage = false;
-        this.modals.rotationManage = false;
-        this.modals.applyRotation = false;
-        this.modals.statsDetail = false;
-        this.modals.moreSettings = false;
+        // 聚焦主月历
       } else if (tab === 'shift') {
         this.modals.shiftManage = true;
       } else if (tab === 'rotation') {
@@ -688,6 +690,18 @@ const app = Vue.createApp({
         this.modals.statsDetail = true;
       } else if (tab === 'more') {
         this.modals.moreSettings = true;
+      }
+    },
+
+    openSubModal(modalName) {
+      // 核心调整：进入二级菜单时自动关闭“我的”抽屉，仅保留最新交互弹窗
+      Object.keys(this.modals).forEach(k => {
+        this.modals[k] = false;
+      });
+      this.mobileMoreDrawer = false;
+
+      if (modalName && this.modals[modalName] !== undefined) {
+        this.modals[modalName] = true;
       }
     },
 

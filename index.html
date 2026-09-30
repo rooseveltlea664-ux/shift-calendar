@@ -107,7 +107,7 @@
               'other-month': !cell.isCurrentMonth,
               'is-today': cell.isToday,
               'weekend': cell.isWeekend,
-              'is-mutual-rest': cell.isMutualRest,
+              'is-mutual-rest': cell.isMutualRest && cell.isCurrentMonth,
               'is-selected': cell.dateStr === selectedDateStr
             }"
             @click="handleCellClick(cell)"
@@ -124,6 +124,8 @@
               >
                 {{ getLunarDayText(cell) }}
               </span>
+              <!-- 共同休息日 醒目标识 (用户指定新增) -->
+              <span v-if="cell.isMutualRest && cell.isCurrentMonth" class="mutual-rest-cell-chip">✦同休</span>
             </div>
 
             <!-- 法定放假 [休] 或 调休补班 [班] 极简角标 -->
@@ -1826,42 +1828,42 @@
         </div>
 
         <div class="p-4 grid grid-cols-3 gap-2.5 text-center">
-          <button @click="mobileMoreDrawer = false; modals.cloudSync = true" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 flex flex-col items-center gap-1.5 hover:border-blue-500">
+          <button @click="openSubModal('cloudSync')" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 flex flex-col items-center gap-1.5 hover:border-blue-500">
             <span class="text-xl">☁️</span>
             <span class="text-xs font-semibold text-slate-700 dark:text-slate-200">云端同步</span>
           </button>
 
-          <button @click="mobileMoreDrawer = false; modals.personSettings = true" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 flex flex-col items-center gap-1.5 hover:border-blue-500">
+          <button @click="openSubModal('personSettings')" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 flex flex-col items-center gap-1.5 hover:border-blue-500">
             <span class="text-xl">👥</span>
             <span class="text-xs font-semibold text-slate-700 dark:text-slate-200">双人称谓</span>
           </button>
 
-          <button @click="mobileMoreDrawer = false; modals.holidayCalendar = true" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 flex flex-col items-center gap-1.5 hover:border-blue-500">
+          <button @click="openSubModal('holidayCalendar')" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 flex flex-col items-center gap-1.5 hover:border-blue-500">
             <span class="text-xl">🇨🇳</span>
             <span class="text-xs font-semibold text-slate-700 dark:text-slate-200">法定节假日</span>
           </button>
 
-          <button @click="mobileMoreDrawer = false; modals.shiftManage = true" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 flex flex-col items-center gap-1.5 hover:border-blue-500">
+          <button @click="openSubModal('shiftManage')" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 flex flex-col items-center gap-1.5 hover:border-blue-500">
             <span class="text-xl">📋</span>
             <span class="text-xs font-semibold text-slate-700 dark:text-slate-200">班次管理</span>
           </button>
 
-          <button @click="mobileMoreDrawer = false; modals.rotationManage = true" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 flex flex-col items-center gap-1.5 hover:border-blue-500">
+          <button @click="openSubModal('rotationManage')" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 flex flex-col items-center gap-1.5 hover:border-blue-500">
             <span class="text-xl">🔄</span>
             <span class="text-xs font-semibold text-slate-700 dark:text-slate-200">轮班方案</span>
           </button>
 
-          <button @click="mobileMoreDrawer = false; modals.historyManage = true" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 flex flex-col items-center gap-1.5 hover:border-blue-500">
+          <button @click="openSubModal('historyManage')" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 flex flex-col items-center gap-1.5 hover:border-blue-500">
             <span class="text-xl">🛡️</span>
             <span class="text-xs font-semibold text-slate-700 dark:text-slate-200">历史与撤回</span>
           </button>
 
-          <button @click="mobileMoreDrawer = false; promptClearAll()" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 flex flex-col items-center gap-1.5 hover:border-red-500">
+          <button @click="openSubModal('clearConfirm')" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 flex flex-col items-center gap-1.5 hover:border-red-500">
             <span class="text-xl">🗑️</span>
             <span class="text-xs font-semibold text-red-600 dark:text-red-400">批量清空</span>
           </button>
 
-          <button @click="mobileMoreDrawer = false; modals.exportImport = true" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 flex flex-col items-center gap-1.5 hover:border-blue-500">
+          <button @click="openSubModal('exportImport')" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 flex flex-col items-center gap-1.5 hover:border-blue-500">
             <span class="text-xl">💾</span>
             <span class="text-xs font-semibold text-slate-700 dark:text-slate-200">备份导出</span>
           </button>
