@@ -697,56 +697,268 @@ body {
   box-shadow: var(--shadow-sm);
 }
 
-/* 移动端与全端适配增强 (Mobile & Tablet Responsiveness) */
-@media (max-width: 768px) {
+/* ============================================================
+   移动端与全端高阶自适应 (Taste & Impeccable Mobile Architecture)
+   真实移动端专属布局：底栏导航 Dock、所选单日速览面板、日程流瀑布卡片
+   ============================================================ */
+
+/* 移动端底栏导航栏 (Mobile Action Dock) */
+.mobile-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-top: 1px solid rgba(226, 232, 240, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding-bottom: max(6px, env(safe-area-inset-bottom));
+  z-index: 40;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.04);
+}
+[data-theme="dark"] .mobile-bottom-nav {
+  background: rgba(17, 24, 39, 0.92);
+  border-top-color: rgba(31, 41, 61, 0.85);
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.mobile-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 100%;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+}
+.mobile-nav-item:active {
+  transform: scale(0.92);
+}
+.mobile-nav-item.is-active {
+  color: var(--accent-color);
+  font-weight: 700;
+}
+.mobile-nav-item.is-active::after {
+  content: '';
+  position: absolute;
+  bottom: max(3px, env(safe-area-inset-bottom));
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: var(--accent-color);
+}
+
+/* 移动端顶部三段式切换 (Segmented Control) */
+.mobile-segmented-control {
+  background: var(--bg-secondary);
+  padding: 4px;
+  border-radius: 12px;
+  display: flex;
+  gap: 4px;
+  border: 1px solid var(--border-color);
+}
+.segmented-btn {
+  flex: 1;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  color: var(--text-secondary);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+.segmented-btn:active {
+  transform: scale(0.96);
+}
+.segmented-btn.is-active {
+  background: var(--bg-surface);
+  color: var(--accent-color);
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* 单日速览检查器卡片 (Day Inspector Card) */
+.day-inspector-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+}
+[data-theme="dark"] .day-inspector-card {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+/* 快速 1-Tap 班次选择芯片 (Quick Shift Chip) */
+.quick-shift-chip {
+  min-width: 40px;
+  height: 34px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.12s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.quick-shift-chip:active {
+  transform: scale(0.92);
+}
+.quick-shift-chip.is-selected {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 1px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  font-weight: 800;
+}
+
+/* 日程流条目卡片 (Agenda Stream Card) */
+.agenda-day-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 14px 16px;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+.agenda-day-card:hover {
+  border-color: var(--accent-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+.agenda-day-card.is-today {
+  border-color: var(--accent-color);
+  background: linear-gradient(to right, var(--accent-light), var(--bg-surface));
+}
+.agenda-day-card.is-mutual-rest {
+  border-color: #a7f3d0;
+  background: #f2fbf6;
+}
+[data-theme="dark"] .agenda-day-card.is-mutual-rest {
+  border-color: rgba(52, 211, 153, 0.35);
+  background: rgba(16, 185, 129, 0.1);
+}
+
+/* 移动端抽屉抓手 (Sheet Handle Bar) */
+.sheet-drag-handle {
+  width: 38px;
+  height: 4.5px;
+  background: #cbd5e1;
+  border-radius: 4px;
+  margin: 10px auto 14px auto;
+}
+[data-theme="dark"] .sheet-drag-handle {
+  background: #475569;
+}
+
+/* 选中高亮日历单元格 (Cell Selection) */
+.calendar-cell.is-selected {
+  box-shadow: inset 0 0 0 2px var(--accent-color), 0 2px 8px rgba(37, 99, 235, 0.2) !important;
+  z-index: 5;
+  background-color: var(--accent-light) !important;
+}
+
+/* 移动端专项媒体查询断点 */
+@media (max-width: 1023px) {
+  /* 日历容器边缘圆角与呼吸感 */
   .calendar-container {
-    border-radius: 12px;
+    border-radius: 14px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
   }
+
+  /* 移动端日历格子自适应高宽与触控尺寸 */
   .calendar-cell {
-    min-height: 82px !important;
-    padding: 3px 4px !important;
+    min-height: 56px !important;
+    padding: 3px !important;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
   }
   .cell-date-num {
     font-size: 11px !important;
-  }
-  .person-shift-pill {
-    padding: 1.5px 3.5px !important;
-    margin-top: 2px !important;
-    font-size: 10px !important;
-    border-radius: 4px !important;
-  }
-  .person-label-tag {
-    font-size: 8px !important;
-    padding: 0 2px !important;
-    margin-right: 2px !important;
-  }
-  .mutual-rest-badge {
-    font-size: 8.5px !important;
-    padding: 0.5px 3px !important;
-  }
-  .cell-remark-badge {
-    display: none; /* 移动端日历格子空间紧张时隐藏文本，点击单日即可查看完整备注 */
+    font-weight: 600;
   }
 
-  /* 移动端模态框优化为底部抽屉式滑出 */
+  /* 移动端隐藏过长的文字胶囊，显示高品质彩色微型指示器 */
+  .mobile-shift-dots-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2.5px;
+    margin-top: 1px;
+    width: 100%;
+  }
+  .mobile-shift-mini-chip {
+    flex: 1;
+    max-width: 22px;
+    height: 17px;
+    border-radius: 4px;
+    font-size: 9.5px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+
+  /* 移动端节假日角标 */
+  .statutory-badge-holiday,
+  .statutory-badge-work {
+    font-size: 8px !important;
+    padding: 0 2px !important;
+  }
+
+  /* 移动端底部留出导航栏安全边距，防止内容被遮挡 */
+  body {
+    padding-bottom: 74px !important;
+  }
+
+  /* 移动端模态框自动转为 iOS 现代平滑抽屉底部拉起 */
   .modal-overlay {
     padding: 0;
     align-items: flex-end;
   }
   .modal-card {
-    max-height: 88vh;
+    max-height: 90vh;
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
-    animation: slideUpMobile 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    animation: slideUpMobile 0.28s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .modal-header {
-    padding: 14px 16px;
+    padding: 12px 18px;
   }
   .modal-body {
-    padding: 14px 16px;
+    padding: 14px 18px 24px 18px;
   }
   .modal-footer {
-    padding: 10px 16px;
+    padding: 12px 18px max(14px, env(safe-area-inset-bottom)) 18px;
   }
 }
 

@@ -258,6 +258,10 @@ const app = Vue.createApp({
       debouncePushTimer: null,
 
       activeDateCell: null,
+      selectedDateStr: formatDate(now),
+      mobileTab: 'calendar', // 'calendar' | 'agenda' | 'stats'
+      mobileMoreDrawer: false,
+      selectedPersonQuickTab: 'p1', // 'p1' | 'p2'
       activePersonTab: 'p1',
       activeDayForm: {
         dateStr: '',
@@ -522,6 +526,46 @@ const app = Vue.createApp({
         });
       }
       return previewList;
+    },
+
+    // 选中日期的完整详情对象 (供移动端速览卡片使用)
+    selectedDayDetail() {
+      const targetStr = this.selectedDateStr || formatDate(new Date());
+      const cell = this.calendarDays.find(c => c.dateStr === targetStr);
+      if (cell) return cell;
+
+      const [y, m, d] = targetStr.split('-').map(Number);
+      const dateObj = new Date(y, m - 1, d);
+      return this.buildCellObject(dateObj, targetStr, d, m - 1 === this.currentMonth);
+    },
+
+    // 移动端专用日程流清单列表
+    agendaDays() {
+      const year = this.currentYear;
+      const month = this.currentMonth;
+      const totalDays = new Date(year, month + 1, 0).getDate();
+      const list = [];
+      const weekNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+
+      for (let d = 1; d <= totalDays; d++) {
+        const dateObj = new Date(year, month, d);
+        const dateStr = formatDate(dateObj);
+        const cell = this.buildCellObject(dateObj, dateStr, d, true);
+        const weekday = weekNames[dateObj.getDay()];
+
+        // 班次筛选过滤
+        if (this.filterShiftId) {
+          const p1Match = cell.p1.shift && cell.p1.shift.id === this.filterShiftId;
+          const p2Match = cell.p2.shift && cell.p2.shift.id === this.filterShiftId;
+          if (!p1Match && !p2Match) continue;
+        }
+
+        list.push({
+          ...cell,
+          weekday
+        });
+      }
+      return list;
     }
   },
 
@@ -1074,6 +1118,7 @@ const app = Vue.createApp({
       } else {
         this.currentMonth -= 1;
       }
+      this.updateSelectedDateForMonth();
       this.syncJumpInputs();
     },
     nextMonth() {
@@ -1083,12 +1128,14 @@ const app = Vue.createApp({
       } else {
         this.currentMonth += 1;
       }
+      this.updateSelectedDateForMonth();
       this.syncJumpInputs();
     },
     goToToday() {
       const now = new Date();
       this.currentYear = now.getFullYear();
       this.currentMonth = now.getMonth();
+      this.selectedDateStr = formatDate(now);
       this.syncJumpInputs();
       this.showToast('已回到今天', 'info');
     },
@@ -1098,7 +1145,16 @@ const app = Vue.createApp({
       if (y >= 1970 && y <= 2100 && m >= 1 && m <= 12) {
         this.currentYear = y;
         this.currentMonth = m - 1;
+        this.updateSelectedDateForMonth();
         this.showToast(`已跳转至 ${y}年${m}月`, 'success');
+      }
+    },
+    updateSelectedDateForMonth() {
+      const now = new Date();
+      if (now.getFullYear() === this.currentYear && now.getMonth() === this.currentMonth) {
+        this.selectedDateStr = formatDate(now);
+      } else {
+        this.selectedDateStr = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-01`;
       }
     },
     syncJumpInputs() {
@@ -1107,6 +1163,7 @@ const app = Vue.createApp({
     },
 
     handleCellClick(cell) {
+      this.selectedDateStr = cell.dateStr;
       this.activeDateCell = cell;
       const sched = cell.scheduleItem || {};
       const p1 = sched.p1 || {};
@@ -1125,7 +1182,76 @@ const app = Vue.createApp({
           hours: p2.hours !== undefined ? p2.hours : (p2.shiftId && this.shiftMap[p2.shiftId] ? this.shiftMap[p2.shiftId].hours : 8)
         }
       };
+
+      // 大屏直接弹窗编辑，手机端支持先高亮选中卡片，可点击下方卡片按钮进入详细编辑
+      if (window.innerWidth >= 1024) {
+        this.modals.dayEdit = true;
+      }
+    },
+
+    openDayEditForSelected() {
+      const cell = this.selectedDayDetail;
+      this.activeDateCell = cell;
+      const sched = this.schedules[this.selectedDateStr] || {};
+      const p1 = sched.p1 || {};
+      const p2 = sched.p2 || {};
+
+      this.activeDayForm = {
+        dateStr: this.selectedDateStr,
+        p1: {
+          shiftId: p1.shiftId || '',
+          note: p1.note || '',
+          hours: p1.hours !== undefined ? p1.hours : (p1.shiftId && this.shiftMap[p1.shiftId] ? this.shiftMap[p1.shiftId].hours : 8)
+        },
+        p2: {
+          shiftId: p2.shiftId || '',
+          note: p2.note || '',
+          hours: p2.hours !== undefined ? p2.hours : (p2.shiftId && this.shiftMap[p2.shiftId] ? this.shiftMap[p2.shiftId].hours : 8)
+        }
+      };
       this.modals.dayEdit = true;
+    },
+
+    quickAssignShift(personKey, shiftId) {
+      const dateStr = this.selectedDateStr;
+      if (!dateStr) return;
+
+      const current = this.schedules[dateStr] || { p1: null, p2: null };
+      const shift = this.shiftMap[shiftId];
+      const existingPersonData = current[personKey] || {};
+
+      // 若点击已选中的班次，再次点击可切换为清除；若不同班次则覆盖
+      const nextShiftId = existingPersonData.shiftId === shiftId ? '' : shiftId;
+      const nextHours = nextShiftId && shift ? shift.hours : 0;
+
+      const updatedPerson = nextShiftId ? {
+        shiftId: nextShiftId,
+        hours: nextHours,
+        note: existingPersonData.note || ''
+      } : (existingPersonData.note ? { shiftId: '', hours: 0, note: existingPersonData.note } : null);
+
+      const nextEntry = {
+        ...current,
+        [personKey]: updatedPerson
+      };
+
+      if (!nextEntry.p1 && !nextEntry.p2) {
+        delete this.schedules[dateStr];
+      } else {
+        this.schedules[dateStr] = nextEntry;
+      }
+
+      this.saveSchedulesToStorage();
+      const personName = personKey === 'p1' ? this.p1Info.name : this.p2Info.name;
+      const shiftName = nextShiftId && shift ? shift.name : '已清除';
+      this.showToast(`${personName}：${shiftName}`, 'success');
+    },
+
+    quickClearDay(dateStr) {
+      if (!this.schedules[dateStr]) return;
+      delete this.schedules[dateStr];
+      this.saveSchedulesToStorage();
+      this.showToast('已清空该日排班', 'info');
     },
 
     selectDayShift(personKey, shiftId) {
