@@ -1,444 +1,759 @@
 /* ============================================================
-   智巡排班 (ShiftMaster) - 现代化排班日历系统
-   基于 UI/UX ProMax 设计规范：简洁克制、网格律动、突出日历主体
+   智巡排班 (ShiftMaster) - Apple 液态玻璃美学与沉浸式月历
+   设计规范：极简克制、月历居中主体、Apple Liquid Glass 质感、零水平滑动拖拽
    ============================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=SF+Pro+Display:wght@500;600;700&display=swap');
 
 :root {
-  --bg-primary: #f8fafc;
+  --bg-primary: #f5f6f9;
   --bg-surface: #ffffff;
-  --bg-secondary: #f1f5f9;
-  --border-color: #e2e8f0;
-  --border-subtle: #edf2f7;
-  --border-focus: #2563eb;
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
+  --bg-secondary: #f0f2f6;
+  --border-color: #e5e7eb;
+  --border-subtle: #f1f3f7;
+  --text-primary: #111827;
+  --text-secondary: #4b5563;
+  --text-muted: #9ca3af;
   --accent-color: #2563eb;
-  --accent-hover: #1d4ed8;
   --accent-light: #eff6ff;
-  --accent-ring: rgba(37, 99, 235, 0.15);
-  --success-color: #059669;
-  --success-bg: #ecfdf5;
-  --success-border: #a7f3d0;
-  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.04);
-  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.06);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
-  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.04);
-  --radius-xs: 4px;
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
-  --font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --accent-border: #bfdbfe;
+  --coral-today: #ef4444;
+  --emerald-today: #10b981;
+  --emerald-today-bg: #ecfdf5;
+
+  /* Apple 液态玻璃参数 (Liquid Glass Tokens) */
+  --glass-bg: rgba(255, 255, 255, 0.76);
+  --glass-border: rgba(255, 255, 255, 0.88);
+  --glass-specular: rgba(255, 255, 255, 0.95);
+  --glass-blur: blur(28px) saturate(210%);
+  --glass-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.06), 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+  --dock-shadow: 0 -8px 32px 0 rgba(0, 0, 0, 0.06), inset 0 1px 1px 0 rgba(255, 255, 255, 0.95);
+
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
 }
 
 [data-theme="dark"] {
   --bg-primary: #090d16;
   --bg-surface: #111827;
-  --bg-secondary: #0d1320;
+  --bg-secondary: #162032;
   --border-color: #1f293d;
   --border-subtle: #172033;
-  --border-focus: #3b82f6;
-  --text-primary: #f8fafc;
-  --text-secondary: #cbd5e1;
-  --text-muted: #64748b;
+  --text-primary: #f9fafb;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
   --accent-color: #3b82f6;
-  --accent-hover: #60a5fa;
-  --accent-light: rgba(59, 130, 246, 0.12);
-  --accent-ring: rgba(59, 130, 246, 0.25);
-  --success-color: #10b981;
-  --success-bg: rgba(16, 185, 129, 0.12);
-  --success-border: rgba(52, 211, 153, 0.3);
-  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.3);
-  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.4);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5);
-  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.6);
+  --accent-light: rgba(59, 130, 246, 0.15);
+  --accent-border: rgba(59, 130, 246, 0.3);
+  --coral-today: #f87171;
+  --emerald-today: #34d399;
+  --emerald-today-bg: rgba(16, 185, 129, 0.14);
+
+  --glass-bg: rgba(17, 24, 39, 0.82);
+  --glass-border: rgba(255, 255, 255, 0.14);
+  --glass-specular: rgba(255, 255, 255, 0.18);
+  --glass-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.45);
+  --dock-shadow: 0 -8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 1px 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 [v-cloak] {
   display: none !important;
 }
 
-* {
+/* ============================================================
+   防拖动与视口重置 (Strict Zero-Drag Containment)
+   彻底杜绝移动浏览器左右来回滑动
+   ============================================================ */
+*, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  min-width: 0;
 }
 
-body {
+html, body {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden !important;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
   font-family: var(--font-family);
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  min-height: 100vh;
   line-height: 1.5;
-  transition: background-color 0.2s ease, color 0.2s ease;
-  overflow-x: hidden;
+  transition: background-color 0.25s ease, color 0.25s ease;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* 滚动条轻量美化 */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
-}
-[data-theme="dark"] ::-webkit-scrollbar-thumb {
-  background: #334155;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+body {
+  padding-bottom: 84px !important; /* 预留底部 Apple 液态玻璃 Dock 空间 */
 }
 
-/* 按钮通用系统 (基于 UI/UX ProMax 规范) */
-.btn {
-  display: inline-flex;
+#app {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden !important;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ============================================================
+   顶部液态玻璃导航栏 (Top Liquid Glass Bar)
+   ============================================================ */
+.apple-top-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.02);
+  width: 100%;
+  max-width: 100vw;
+}
+
+.top-header-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 10px 14px;
+  display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.month-title-wrap {
+  display: flex;
+  align-items: center;
   gap: 6px;
-  padding: 7px 14px;
-  font-size: 13px;
-  font-weight: 500;
-  border-radius: var(--radius-sm);
-  border: 1px solid transparent;
-  cursor: pointer;
-  transition: all 0.16s cubic-bezier(0.16, 1, 0.3, 1);
-  user-select: none;
-  white-space: nowrap;
-  line-height: 1.25;
-}
-.btn:active {
-  transform: scale(0.97);
-}
-.btn-primary {
-  background-color: var(--accent-color);
-  color: #ffffff;
-  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
-}
-.btn-primary:hover {
-  background-color: var(--accent-hover);
-  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.28);
-}
-.btn-outline {
-  background-color: var(--bg-surface);
-  color: var(--text-primary);
-  border-color: var(--border-color);
-  box-shadow: var(--shadow-xs);
-}
-.btn-outline:hover {
-  background-color: var(--bg-secondary);
-  border-color: #cbd5e1;
-  color: var(--text-primary);
-}
-[data-theme="dark"] .btn-outline:hover {
-  border-color: #475569;
-}
-.btn-secondary {
-  background-color: var(--bg-secondary);
-  color: var(--text-secondary);
-  border-color: transparent;
-}
-.btn-secondary:hover {
-  background-color: var(--border-color);
-  color: var(--text-primary);
-}
-.btn-danger {
-  background-color: #dc2626;
-  color: #ffffff;
-  box-shadow: 0 1px 2px rgba(220, 38, 38, 0.2);
-}
-.btn-danger:hover {
-  background-color: #b91c1c;
-}
-.btn-sm {
-  padding: 4px 9px;
-  font-size: 12px;
-  border-radius: var(--radius-sm);
-}
-.btn-icon {
-  width: 34px;
-  height: 34px;
-  padding: 0;
-  border-radius: var(--radius-sm);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
 }
 
-/* 日历网格核心样式 (突出主体、清晰层级) */
-.calendar-container {
+.month-hero-title {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.view-mode-pill-group {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-secondary);
+  padding: 3px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+}
+
+.view-mode-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.view-mode-btn.active {
+  background: var(--bg-surface);
+  color: var(--accent-color);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  font-weight: 700;
+}
+
+/* ============================================================
+   班次图例统计条 (Shift Legend Strip) - 对齐截图
+   ● 白班(8)  ● 夜班(8)  ● 下夜(7)  ● 休息(7)  ✦ 同休(X)
+   ============================================================ */
+.legend-strip-container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 8px 12px 6px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  width: 100%;
+}
+
+.legend-items-list {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  font-size: 12.5px;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4.5px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  cursor: default;
+}
+
+.legend-dot {
+  width: 8.5px;
+  height: 8.5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legend-count {
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.mutual-rest-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+[data-theme="dark"] .mutual-rest-legend {
+  background: rgba(16, 185, 129, 0.18);
+  color: #6ee7b7;
+  border-color: rgba(52, 211, 153, 0.3);
+}
+
+/* ============================================================
+   月历主卡片网格容器 (Main Month Calendar Container)
+   ============================================================ */
+.calendar-card-wrapper {
+  max-width: 960px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 0 8px;
+}
+
+.calendar-card {
   background: var(--bg-surface);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--glass-shadow);
   overflow: hidden;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  width: 100%;
 }
 
-.calendar-header-weekdays {
+/* 星期头部 (周一至周日) */
+.calendar-weekdays-row {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+  width: 100%;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-color);
-  text-align: center;
-  font-weight: 600;
-  font-size: 12px;
-  letter-spacing: 0.5px;
-  color: var(--text-secondary);
-  padding: 10px 0;
-}
-.calendar-header-weekdays .weekend {
-  color: #f43f5e;
 }
 
+.calendar-weekday-col {
+  padding: 8px 0;
+  text-align: center;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.calendar-weekday-col.weekend {
+  color: #e11d48;
+}
+
+/* 42格日历网格 */
 .calendar-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+  width: 100%;
   background-color: var(--border-color);
   gap: 1px;
 }
 
 .calendar-cell {
   background: var(--bg-surface);
-  min-height: 124px;
-  padding: 6px 7px;
+  min-height: 64px;
+  padding: 4px 3px 5px 3px;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   position: relative;
   cursor: pointer;
-  transition: background-color 0.12s ease, box-shadow 0.12s ease;
+  overflow: hidden !important;
+  transition: transform 0.12s ease, background-color 0.12s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.calendar-cell:hover {
-  background-color: rgba(37, 99, 235, 0.04);
-  z-index: 2;
-}
-[data-theme="dark"] .calendar-cell:hover {
-  background-color: rgba(59, 130, 246, 0.08);
-}
-
-/* 共同休息日特殊背景与清新绿意高亮 */
-.calendar-cell.is-mutual-rest {
-  background-color: #f2fbf6 !important;
-  box-shadow: inset 0 0 0 1px #a7f3d0;
-}
-[data-theme="dark"] .calendar-cell.is-mutual-rest {
-  background-color: rgba(16, 185, 129, 0.09) !important;
-  box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.3);
+@media (min-width: 768px) {
+  .calendar-cell {
+    min-height: 84px;
+    padding: 6px 6px 7px 6px;
+  }
 }
 
-.mutual-rest-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 2.5px;
-  padding: 1px 5px;
-  border-radius: var(--radius-xs);
-  font-size: 10px;
-  font-weight: 700;
-  color: #047857;
-  background: #d1fae5;
-  border: 1px solid #a7f3d0;
-  white-space: nowrap;
-  letter-spacing: 0.2px;
-}
-[data-theme="dark"] .mutual-rest-badge {
-  color: #6ee7b7;
-  background: rgba(16, 185, 129, 0.22);
-  border-color: rgba(52, 211, 153, 0.35);
-}
-
-/* 双人排班胶囊行 (轻量微质感，无厚重边框) */
-.person-shift-pill {
-  margin-top: 3px;
-  padding: 2.5px 6px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
-  transition: transform 0.1s ease, opacity 0.15s ease;
-}
-.person-shift-pill:hover {
-  transform: translateY(-0.5px);
-}
-.person-label-tag {
-  font-size: 9px;
-  font-weight: 700;
-  padding: 0.5px 3.5px;
-  border-radius: 3px;
-  margin-right: 4px;
-  background: rgba(0, 0, 0, 0.16);
-  flex-shrink: 0;
-  letter-spacing: 0.2px;
+.calendar-cell:active {
+  background-color: var(--bg-secondary);
 }
 
 .calendar-cell.other-month {
-  background-color: rgba(248, 250, 252, 0.6);
-  opacity: 0.45;
-}
-[data-theme="dark"] .calendar-cell.other-month {
-  background-color: rgba(15, 23, 42, 0.6);
-  opacity: 0.3;
+  background-color: var(--bg-secondary);
+  opacity: 0.42;
 }
 
-/* 今日醒目标识 (极简圆标，不遮挡任何排班信息) */
-.calendar-cell.is-today .cell-date-num {
-  background-color: var(--accent-color);
-  color: #ffffff !important;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  display: inline-flex;
+/* 今日醒目绿框高亮 (对齐用户提供的排班实景照) */
+.calendar-cell.is-today {
+  border: 1.5px solid var(--emerald-today) !important;
+  background-color: var(--emerald-today-bg) !important;
+  border-radius: 6px;
+  z-index: 2;
+}
+
+.calendar-cell.is-selected {
+  outline: 2px solid var(--accent-color);
+  outline-offset: -2px;
+  z-index: 3;
+}
+
+/* 日期与农历/节气头部 */
+.cell-top-row {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 12px;
-  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.35);
+  line-height: 1.1;
+  gap: 1px;
 }
 
-.cell-date-num {
-  font-size: 13px;
-  font-weight: 600;
+.cell-day-num {
+  font-size: 14px;
+  font-weight: 700;
   color: var(--text-primary);
-  line-height: 1.2;
-  transition: color 0.15s ease;
+  font-variant-numeric: tabular-nums;
 }
-.weekend .cell-date-num {
+
+.calendar-cell.is-today .cell-day-num {
+  color: var(--coral-today);
+  font-weight: 900;
+}
+
+.calendar-cell.weekend .cell-day-num {
   color: #e11d48;
 }
 
-/* 空白班次占位提示 */
-.empty-shift-hint {
-  margin-top: 6px;
-  font-size: 11px;
-  color: var(--text-muted);
-  border: 1px dashed var(--border-color);
-  border-radius: 6px;
-  padding: 6px 4px;
-  text-align: center;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-}
-.calendar-cell:hover .empty-shift-hint {
-  opacity: 0.85;
+.calendar-cell.is-today.weekend .cell-day-num {
+  color: var(--coral-today);
 }
 
-/* 备注小徽章 */
-.cell-remark-badge {
-  margin-top: 3px;
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  font-size: 10px;
-  color: var(--text-secondary);
-  background: var(--bg-secondary);
-  padding: 1.5px 5px;
-  border-radius: 4px;
+/* 农历 / 节气小字 */
+.cell-lunar-text {
+  font-size: 9.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-  border-left: 2px solid #f59e0b;
+  max-width: 100%;
 }
 
-/* 轮班序列项 (Rotation Sequence Items) */
-.rotation-sequence-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-  padding: 12px;
-  background: var(--bg-secondary);
-  border-radius: var(--radius-md);
-  min-height: 60px;
+.calendar-cell.is-today .cell-lunar-text {
+  color: var(--emerald-today);
+  font-weight: 700;
 }
-.sequence-chip {
+
+.cell-lunar-text.is-term,
+.cell-lunar-text.is-festival {
+  color: #e11d48;
+  font-weight: 700;
+}
+
+/* 法定放假 [休] 或 调休补班 [班] 角标 */
+.statutory-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 8px;
+  line-height: 1;
+  padding: 1px 2px;
+  border-radius: 3px;
+  font-weight: 800;
+}
+.statutory-badge.holiday {
+  background: #fee2e2;
+  color: #dc2626;
+}
+.statutory-badge.work {
+  background: #f1f5f9;
+  color: #475569;
+}
+[data-theme="dark"] .statutory-badge.holiday {
+  background: rgba(239, 68, 68, 0.25);
+  color: #f87171;
+}
+
+/* 班次胶囊 (Shift Pill) - 对齐实景：白班红、夜班蓝、下夜青、休息绿 */
+.cell-shift-wrap {
+  width: 100%;
+  margin-top: 3px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.single-shift-pill {
+  width: 100%;
+  height: 20px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+@media (min-width: 768px) {
+  .single-shift-pill {
+    height: 23px;
+    font-size: 12px;
+    border-radius: 6px;
+  }
+}
+
+/* 双人紧凑标签 */
+.dual-shift-pill {
+  width: 100%;
+  height: 15px;
+  border-radius: 3.5px;
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 3px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.dual-pill-badge {
+  font-size: 8px;
+  opacity: 0.9;
+  font-weight: 800;
+}
+
+/* ============================================================
+   月份切换与底部操作栏 (Month Switcher Bar) - 对齐截图
+   ← 上个月     回到今天     下个月 →
+   ============================================================ */
+.calendar-footer-controls {
+  max-width: 960px;
+  margin: 10px auto 0 auto;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.month-nav-btn {
+  flex: 1;
+  padding: 9px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: all 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.month-nav-btn:active {
+  transform: scale(0.97);
+  background: var(--bg-secondary);
+}
+
+.today-quick-btn {
+  background: var(--accent-light);
+  color: var(--accent-color);
+  border-color: var(--accent-border);
+  font-weight: 700;
+}
+
+/* 当日班次详情条 (Selected Day Banner) - 对齐截图 */
+.selected-day-banner {
+  max-width: 960px;
+  margin: 8px auto 0 auto;
+  padding: 0 8px;
+}
+
+.selected-day-bar-inner {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  transition: background-color 0.12s ease;
+}
+
+.selected-day-bar-inner:active {
+  background: var(--bg-secondary);
+}
+
+.selected-day-text {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.selected-day-pill-preview {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 10px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-  position: relative;
-  transition: transform 0.15s ease;
-}
-.sequence-chip:hover {
-  transform: scale(1.03);
-}
-.sequence-step-num {
-  font-size: 10px;
-  background: rgba(0,0,0,0.18);
-  padding: 1px 5px;
-  border-radius: 10px;
 }
 
-/* 模态框 (Modal) 遮罩及主体 */
+.mini-badge {
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* ============================================================
+   Apple 液态玻璃底栏导航 Dock (Apple Liquid Glass Dock)
+   【排班】 【班次】 【轮班】 【统计】 【我的】
+   ============================================================ */
+.apple-liquid-dock {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  height: 64px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-top: 1px solid var(--glass-border);
+  box-shadow: var(--dock-shadow);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 12px max(6px, env(safe-area-inset-bottom)) 12px;
+  max-width: 100vw;
+  width: 100%;
+}
+
+.dock-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 100%;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.dock-item:active {
+  transform: scale(0.90);
+}
+
+.dock-item.active {
+  color: var(--accent-color);
+  font-weight: 700;
+}
+
+.dock-item svg {
+  width: 22px;
+  height: 22px;
+  transition: stroke 0.15s ease;
+}
+
+.dock-label {
+  font-size: 11px;
+  letter-spacing: 0.2px;
+}
+
+/* ============================================================
+   模态框与底抽屉 (Apple Liquid Glass Modal & Sheet System)
+   ============================================================ */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(4px);
+  background-color: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
-  padding: 16px;
+  z-index: 100;
+  padding: 12px;
   animation: fadeIn 0.2s ease-out;
 }
+
 .modal-card {
   background: var(--bg-surface);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.25);
   border: 1px solid var(--border-color);
   width: 100%;
-  max-width: 620px;
-  max-height: 90vh;
+  max-width: 600px;
+  max-height: 88vh;
   display: flex;
   flex-direction: column;
   animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
 }
+
+@media (max-width: 767px) {
+  .modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+  .modal-card {
+    max-height: 90vh;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    border-top-left-radius: 22px;
+    border-top-right-radius: 22px;
+    animation: slideUpMobile 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
+.sheet-handle-bar {
+  width: 38px;
+  height: 5px;
+  background: #cbd5e1;
+  border-radius: 4px;
+  margin: 10px auto 4px auto;
+}
+[data-theme="dark"] .sheet-handle-bar {
+  background: #475569;
+}
+
 .modal-header {
-  padding: 18px 24px;
+  padding: 14px 20px;
   border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
+
+.modal-header-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .modal-body {
-  padding: 20px 24px;
+  padding: 18px 20px;
   overflow-y: auto;
   flex: 1;
 }
+
 .modal-footer {
-  padding: 14px 24px;
+  padding: 12px 20px max(12px, env(safe-area-inset-bottom)) 20px;
   border-top: 1px solid var(--border-color);
   background: var(--bg-secondary);
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 12px;
+  gap: 10px;
 }
 
-/* 表单输入框通用 */
+/* 通用按钮 */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+  user-select: none;
+}
+.btn:active {
+  transform: scale(0.96);
+}
+.btn-primary {
+  background: var(--accent-color);
+  color: #ffffff;
+}
+.btn-secondary {
+  background: var(--bg-surface);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+.btn-outline {
+  background: transparent;
+  border-color: var(--border-color);
+  color: var(--text-secondary);
+}
+.btn-danger {
+  background: #ef4444;
+  color: #ffffff;
+}
+.btn-sm {
+  padding: 5px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+}
+
+/* 表单组件 */
 .form-group {
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 .form-label {
   display: block;
@@ -449,520 +764,76 @@ body {
 }
 .form-input, .form-select, .form-textarea {
   width: 100%;
-  padding: 9px 12px;
-  font-size: 14px;
-  background-color: var(--bg-surface);
-  color: var(--text-primary);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 13.5px;
   outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-  font-family: inherit;
+  transition: border-color 0.15s ease;
 }
 .form-input:focus, .form-select:focus, .form-textarea:focus {
-  border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
-}
-
-/* 颜色选择小圆点 */
-.color-picker-palette {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 6px;
-}
-.color-dot {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  cursor: pointer;
-  border: 2px solid transparent;
-  transition: transform 0.12s ease, border-color 0.12s ease;
-}
-.color-dot:hover {
-  transform: scale(1.15);
-}
-.color-dot.active {
-  border-color: #0f172a;
-  transform: scale(1.15);
-  box-shadow: 0 0 0 2px white;
-}
-[data-theme="dark"] .color-dot.active {
-  border-color: #ffffff;
-  box-shadow: 0 0 0 2px #0f172a;
-}
-
-/* 统计卡片与进度条 */
-.stat-card {
-  background: var(--bg-surface);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-color);
-  padding: 16px;
-  box-shadow: var(--shadow-sm);
-  transition: box-shadow 0.2s ease;
-}
-.stat-card:hover {
-  box-shadow: var(--shadow-md);
-}
-
-.progress-bar-track {
-  height: 8px;
-  background-color: var(--bg-secondary);
-  border-radius: 4px;
-  overflow: hidden;
-  margin-top: 6px;
-}
-.progress-bar-fill {
-  height: 100%;
-  border-radius: 4px;
-  transition: width 0.4s ease;
+  border-color: var(--accent-color);
 }
 
 /* Toast 提示 */
 .toast-container {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
-  z-index: 2000;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
   display: flex;
   flex-direction: column;
   gap: 8px;
   pointer-events: none;
+  width: 90%;
+  max-width: 360px;
 }
 .toast-item {
-  background: #1e293b;
-  color: #fff;
-  padding: 10px 18px;
+  padding: 10px 16px;
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 600;
   display: flex;
   align-items: center;
   gap: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  animation: fadeInDown 0.25s ease-out;
   pointer-events: auto;
-  animation: slideInRight 0.25s ease-out;
 }
-.toast-item.success { border-left: 4px solid #10b981; }
-.toast-item.info { border-left: 4px solid #3b82f6; }
-.toast-item.warning { border-left: 4px solid #f59e0b; }
-.toast-item.error { border-left: 4px solid #ef4444; }
+.toast-item.success {
+  background: #10b981;
+  color: #ffffff;
+}
+.toast-item.error {
+  background: #ef4444;
+  color: #ffffff;
+}
+.toast-item.warning {
+  background: #f59e0b;
+  color: #ffffff;
+}
+.toast-item.info {
+  background: #1f2937;
+  color: #ffffff;
+}
 
-/* 动画定义 */
+/* 动效 */
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px) scale(0.97); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from { transform: translateY(16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
-@keyframes slideInRight {
-  from { opacity: 0; transform: translateX(30px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
-/* 打印样式适配 */
-@media print {
-  body {
-    background: #fff !important;
-    color: #000 !important;
-  }
-  .no-print {
-    display: none !important;
-  }
-  .calendar-container {
-    box-shadow: none !important;
-    border: 1px solid #000 !important;
-  }
-  .calendar-cell {
-    min-height: 90px !important;
-  }
-}
-
-/* 响应式调整 */
-@media (max-width: 768px) {
-  .calendar-cell {
-    min-height: 72px;
-    padding: 3px 4px;
-  }
-  .cell-date-num {
-    font-size: 12px;
-  }
-  .shift-tag {
-    padding: 2px 4px;
-    font-size: 10px;
-    margin-top: 2px;
-  }
-  .shift-tag-time {
-    display: none;
-  }
-  .cell-remark-badge {
-    font-size: 9px;
-    padding: 1px 3px;
-  }
-}
-
-/* 云端同步指示器 */
-.sync-indicator {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: var(--radius-md);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  user-select: none;
-}
-.sync-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  display: inline-block;
-  transition: background-color 0.2s ease;
-}
-.sync-dot.connected {
-  background-color: #10b981;
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
-  animation: pulseGreen 2.5s infinite;
-}
-.sync-dot.syncing {
-  background-color: #f59e0b;
-  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.3);
-  animation: pulseSyncing 0.8s infinite;
-}
-.sync-dot.offline {
-  background-color: #94a3b8;
-}
-
-@keyframes pulseGreen {
-  0% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.2); opacity: 0.7; }
-  100% { transform: scale(1); opacity: 1; }
-}
-@keyframes pulseSyncing {
-  0% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(1.25); }
-  100% { opacity: 1; transform: scale(1); }
-}
-
-/* 法定放假 [休] 与调休补班 [班] 徽章 */
-.statutory-badge-holiday {
-  font-size: 9px;
-  font-weight: 700;
-  color: #dc2626;
-  background: #fee2e2;
-  border: 1px solid #fca5a5;
-  padding: 0.5px 3.5px;
-  border-radius: 3px;
-  line-height: 1.2;
-  display: inline-flex;
-  align-items: center;
-}
-[data-theme="dark"] .statutory-badge-holiday {
-  color: #f87171;
-  background: rgba(239, 68, 68, 0.22);
-  border-color: rgba(239, 68, 68, 0.45);
-}
-
-.statutory-badge-work {
-  font-size: 9px;
-  font-weight: 700;
-  color: #d97706;
-  background: #fef3c7;
-  border: 1px solid #fcd34d;
-  padding: 0.5px 3.5px;
-  border-radius: 3px;
-  line-height: 1.2;
-  display: inline-flex;
-  align-items: center;
-}
-[data-theme="dark"] .statutory-badge-work {
-  color: #fbbf24;
-  background: rgba(245, 158, 11, 0.22);
-  border-color: rgba(245, 158, 11, 0.45);
-}
-
-/* 历史快照时间轴项 */
-.history-item-card {
-  border: 1px solid var(--border-color);
-  background: var(--bg-surface);
-  border-radius: var(--radius-md);
-  padding: 12px 14px;
-  transition: all 0.15s ease;
-}
-.history-item-card:hover {
-  border-color: var(--accent-color);
-  box-shadow: var(--shadow-sm);
-}
-
-/* ============================================================
-   移动端与全端高阶自适应 (Taste & Impeccable Mobile Architecture)
-   真实移动端专属布局：底栏导航 Dock、所选单日速览面板、日程流瀑布卡片
-   ============================================================ */
-
-/* 移动端底栏导航栏 (Mobile Action Dock) */
-.mobile-bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 64px;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-top: 1px solid rgba(226, 232, 240, 0.85);
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-  padding-bottom: max(6px, env(safe-area-inset-bottom));
-  z-index: 40;
-  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.04);
-}
-[data-theme="dark"] .mobile-bottom-nav {
-  background: rgba(17, 24, 39, 0.92);
-  border-top-color: rgba(31, 41, 61, 0.85);
-  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.3);
-}
-
-.mobile-nav-item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  height: 100%;
-  color: var(--text-muted);
-  font-size: 11px;
-  font-weight: 500;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  position: relative;
-  -webkit-tap-highlight-color: transparent;
-}
-.mobile-nav-item:active {
-  transform: scale(0.92);
-}
-.mobile-nav-item.is-active {
-  color: var(--accent-color);
-  font-weight: 700;
-}
-.mobile-nav-item.is-active::after {
-  content: '';
-  position: absolute;
-  bottom: max(3px, env(safe-area-inset-bottom));
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background-color: var(--accent-color);
-}
-
-/* 移动端顶部三段式切换 (Segmented Control) */
-.mobile-segmented-control {
-  background: var(--bg-secondary);
-  padding: 4px;
-  border-radius: 12px;
-  display: flex;
-  gap: 4px;
-  border: 1px solid var(--border-color);
-}
-.segmented-btn {
-  flex: 1;
-  padding: 7px 12px;
-  font-size: 12px;
-  font-weight: 600;
-  border-radius: 9px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  color: var(--text-secondary);
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
-  -webkit-tap-highlight-color: transparent;
-}
-.segmented-btn:active {
-  transform: scale(0.96);
-}
-.segmented-btn.is-active {
-  background: var(--bg-surface);
-  color: var(--accent-color);
-  font-weight: 700;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-}
-
-/* 单日速览检查器卡片 (Day Inspector Card) */
-.day-inspector-card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-color);
-  border-radius: 16px;
-  padding: 16px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
-  transition: all 0.2s ease;
-}
-[data-theme="dark"] .day-inspector-card {
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-}
-
-/* 快速 1-Tap 班次选择芯片 (Quick Shift Chip) */
-.quick-shift-chip {
-  min-width: 40px;
-  height: 34px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 10px;
-  cursor: pointer;
-  border: 1px solid transparent;
-  transition: all 0.12s ease;
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
-}
-.quick-shift-chip:active {
-  transform: scale(0.92);
-}
-.quick-shift-chip.is-selected {
-  outline: 2px solid var(--accent-color);
-  outline-offset: 1px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-  font-weight: 800;
-}
-
-/* 日程流条目卡片 (Agenda Stream Card) */
-.agenda-day-card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-color);
-  border-radius: 14px;
-  padding: 14px 16px;
-  transition: all 0.15s ease;
-  cursor: pointer;
-}
-.agenda-day-card:hover {
-  border-color: var(--accent-color);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-}
-.agenda-day-card.is-today {
-  border-color: var(--accent-color);
-  background: linear-gradient(to right, var(--accent-light), var(--bg-surface));
-}
-.agenda-day-card.is-mutual-rest {
-  border-color: #a7f3d0;
-  background: #f2fbf6;
-}
-[data-theme="dark"] .agenda-day-card.is-mutual-rest {
-  border-color: rgba(52, 211, 153, 0.35);
-  background: rgba(16, 185, 129, 0.1);
-}
-
-/* 移动端抽屉抓手 (Sheet Handle Bar) */
-.sheet-drag-handle {
-  width: 38px;
-  height: 4.5px;
-  background: #cbd5e1;
-  border-radius: 4px;
-  margin: 10px auto 14px auto;
-}
-[data-theme="dark"] .sheet-drag-handle {
-  background: #475569;
-}
-
-/* 选中高亮日历单元格 (Cell Selection) */
-.calendar-cell.is-selected {
-  box-shadow: inset 0 0 0 2px var(--accent-color), 0 2px 8px rgba(37, 99, 235, 0.2) !important;
-  z-index: 5;
-  background-color: var(--accent-light) !important;
-}
-
-/* 移动端专项媒体查询断点 */
-@media (max-width: 1023px) {
-  /* 日历容器边缘圆角与呼吸感 */
-  .calendar-container {
-    border-radius: 14px;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-  }
-
-  /* 移动端日历格子自适应高宽与触控尺寸 */
-  .calendar-cell {
-    min-height: 56px !important;
-    padding: 3px !important;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-  }
-  .cell-date-num {
-    font-size: 11px !important;
-    font-weight: 600;
-  }
-
-  /* 移动端隐藏过长的文字胶囊，显示高品质彩色微型指示器 */
-  .mobile-shift-dots-row {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 2.5px;
-    margin-top: 1px;
-    width: 100%;
-  }
-  .mobile-shift-mini-chip {
-    flex: 1;
-    max-width: 22px;
-    height: 17px;
-    border-radius: 4px;
-    font-size: 9.5px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #ffffff;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-  }
-
-  /* 移动端节假日角标 */
-  .statutory-badge-holiday,
-  .statutory-badge-work {
-    font-size: 8px !important;
-    padding: 0 2px !important;
-  }
-
-  /* 移动端底部留出导航栏安全边距，防止内容被遮挡 */
-  body {
-    padding-bottom: 74px !important;
-  }
-
-  /* 移动端模态框自动转为 iOS 现代平滑抽屉底部拉起 */
-  .modal-overlay {
-    padding: 0;
-    align-items: flex-end;
-  }
-  .modal-card {
-    max-height: 90vh;
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
-    border-top-left-radius: 20px;
-    border-top-right-radius: 20px;
-    animation: slideUpMobile 0.28s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .modal-header {
-    padding: 12px 18px;
-  }
-  .modal-body {
-    padding: 14px 18px 24px 18px;
-  }
-  .modal-footer {
-    padding: 12px 18px max(14px, env(safe-area-inset-bottom)) 18px;
-  }
-}
-
 @keyframes slideUpMobile {
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
+}
+@keyframes fadeInDown {
+  from { transform: translateY(-12px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }

@@ -3,13 +3,13 @@
  * 支持双人协同排班、共同休息日智能识别、中国法定节假日联动、批量清空与历史回撤、云端跨设备实时自动同步
  */
 
-// 预设默认班次定义
+// 预设默认班次定义 (对齐专业医疗/巡检/工业排班色彩规范)
 const DEFAULT_SHIFTS = [
-  { id: 'shift_morning', name: '早班', code: '早', startTime: '08:00', endTime: '16:00', hours: 8, color: '#3b82f6', textColor: '#ffffff', desc: '上午工作班次' },
-  { id: 'shift_middle', name: '中班', code: '中', startTime: '16:00', endTime: '24:00', hours: 8, color: '#f59e0b', textColor: '#ffffff', desc: '下午至前半夜班次' },
-  { id: 'shift_night', name: '夜班', code: '夜', startTime: '00:00', endTime: '08:00', hours: 8, color: '#8b5cf6', textColor: '#ffffff', desc: '通宵夜班' },
+  { id: 'shift_regular', name: '白班', code: '白', startTime: '08:00', endTime: '16:30', hours: 8, color: '#ef4444', textColor: '#ffffff', desc: '常日白班' },
+  { id: 'shift_night', name: '夜班', code: '夜', startTime: '20:00', endTime: '次日08:30', hours: 12, color: '#1d4ed8', textColor: '#ffffff', desc: '通宵夜班' },
+  { id: 'shift_next_night', name: '下夜', code: '下', startTime: '08:30', endTime: '16:00', hours: 7, color: '#0d9488', textColor: '#ffffff', desc: '下夜班次' },
   { id: 'shift_rest', name: '休息', code: '休', startTime: '00:00', endTime: '00:00', hours: 0, color: '#10b981', textColor: '#ffffff', desc: '轮休/调休' },
-  { id: 'shift_regular', name: '白班', code: '白', startTime: '09:00', endTime: '18:00', hours: 8, color: '#06b6d4', textColor: '#ffffff', desc: '常日白班' },
+  { id: 'shift_middle', name: '中班', code: '中', startTime: '16:00', endTime: '24:00', hours: 8, color: '#f59e0b', textColor: '#ffffff', desc: '下午中班' },
   { id: 'shift_ot', name: '加班', code: '加', startTime: '18:00', endTime: '22:00', hours: 4, color: '#ec4899', textColor: '#ffffff', desc: '额外加班/备勤' },
 ];
 
@@ -157,6 +157,24 @@ const CHINA_HOLIDAYS_DB = {
   '2026-10-10': { name: '国庆调休', isHoliday: false }
 };
 
+// -------------------------------------------------------------
+// 二十四节气数据库 (2025、2026年精准天文日期)
+// -------------------------------------------------------------
+const SOLAR_TERMS_DB = {
+  '2025-01-05': '小寒', '2025-01-20': '大寒', '2025-02-03': '立春', '2025-02-18': '雨水',
+  '2025-03-05': '惊蛰', '2025-03-20': '春分', '2025-04-04': '清明', '2025-04-20': '谷雨',
+  '2025-05-05': '立夏', '2025-05-21': '小满', '2025-06-05': '芒种', '2025-06-21': '夏至',
+  '2025-07-07': '小暑', '2025-07-22': '大暑', '2025-08-07': '立秋', '2025-08-23': '处暑',
+  '2025-09-07': '白露', '2025-09-23': '秋分', '2025-10-08': '寒露', '2025-10-23': '霜降',
+  '2025-11-07': '立冬', '2025-11-22': '小雪', '2025-12-07': '大雪', '2025-12-21': '冬至',
+  '2026-01-05': '小寒', '2026-01-20': '大寒', '2026-02-04': '立春', '2026-02-18': '雨水',
+  '2026-03-05': '惊蛰', '2026-03-20': '春分', '2026-04-05': '清明', '2026-04-20': '谷雨',
+  '2026-05-05': '立夏', '2026-05-21': '小满', '2026-06-05': '芒种', '2026-06-21': '夏至',
+  '2026-07-07': '小暑', '2026-07-23': '大暑', '2026-08-07': '立秋', '2026-08-23': '处暑',
+  '2026-09-07': '白露', '2026-09-23': '秋分', '2026-10-08': '寒露', '2026-10-23': '霜降',
+  '2026-11-07': '立冬', '2026-11-22': '小雪', '2026-12-07': '大雪', '2026-12-21': '冬至'
+};
+
 const app = Vue.createApp({
   data() {
     const savedShifts = localStorage.getItem('shift_types_v1');
@@ -232,7 +250,10 @@ const app = Vue.createApp({
         clearConfirm: false,     // 批量/一键清空二次确认弹窗
         historyManage: false,    // 操作历史与撤回管理
         holidayCalendar: false,  // 法定节假日与调休查询日历
+        moreSettings: false,     // 底部“我的/更多”设置面板
       },
+
+      currentNavTab: 'calendar', // 'calendar' | 'shift' | 'rotation' | 'stats' | 'more'
 
       // 批量删除/清空表单
       clearForm: {
@@ -369,6 +390,30 @@ const app = Vue.createApp({
         }
       });
       return list.sort((a, b) => a.dateStr.localeCompare(b.dateStr));
+    },
+
+    currentMonthShiftCounts() {
+      const year = this.currentYear;
+      const month = this.currentMonth;
+      const monthPrefix = `${year}-${String(month + 1).padStart(2, '0')}`;
+      const counts = {};
+      this.shiftTypes.forEach(s => {
+        counts[s.id] = { id: s.id, name: s.name, color: s.color, count: 0 };
+      });
+
+      const targetPersonKey = this.viewMode === 'p2' ? 'p2' : 'p1';
+      Object.keys(this.schedules).forEach(dateStr => {
+        if (dateStr.startsWith(monthPrefix)) {
+          const item = this.schedules[dateStr];
+          if (item) {
+            const p = item[targetPersonKey];
+            if (p && p.shiftId && counts[p.shiftId]) {
+              counts[p.shiftId].count++;
+            }
+          }
+        }
+      });
+      return Object.values(counts);
     },
 
     calendarDays() {
@@ -595,6 +640,62 @@ const app = Vue.createApp({
     // =========================================================
     getChinaHolidayInfo(dateStr) {
       return CHINA_HOLIDAYS_DB[dateStr] || null;
+    },
+
+    getLunarDayText(cell) {
+      if (!cell || !cell.dateStr) return '';
+      // 1. 优先展示24节气（如白露、秋分、立秋）
+      if (SOLAR_TERMS_DB[cell.dateStr]) {
+        return SOLAR_TERMS_DB[cell.dateStr];
+      }
+      // 2. 传统重大节庆（如中秋、国庆、除夕、春节）
+      if (cell.holInfo && cell.holInfo.name) {
+        const cleanName = cell.holInfo.name.replace(/调休|假期|节/g, '');
+        if (['中秋', '除夕', '春节', '端午', '重阳', '元旦', '国庆'].includes(cleanName)) {
+          return cleanName;
+        }
+      }
+      // 3. 农历日期精准算法 (廿一、初一、八月等)
+      try {
+        const parts = new Intl.DateTimeFormat('zh-CN-u-ca-chinese', { month: 'numeric', day: 'numeric' }).formatToParts(cell.dateObj);
+        const m = parseInt(parts.find(p => p.type === 'month')?.value, 10);
+        const d = parseInt(parts.find(p => p.type === 'day')?.value, 10);
+        const LUNAR_DAYS = ['', '初一','初二','初三','初四','初五','初六','初七','初八','初九','初十',
+          '十一','十二','十三','十四','十五','十六','十七','十八','十九','二十',
+          '廿一','廿二','廿三','廿四','廿五','廿六','廿七','廿八','廿九','三十'];
+        const LUNAR_MONTHS = ['', '正月','二月','三月','四月','五月','六月','七月','八月','九月','十月','冬月','腊月'];
+        if (d === 1) return LUNAR_MONTHS[m] || '初一';
+        return LUNAR_DAYS[d] || `${d}`;
+      } catch (e) {
+        return '';
+      }
+    },
+
+    switchNavTab(tab) {
+      this.currentNavTab = tab;
+      if (tab === 'calendar') {
+        this.modals.shiftManage = false;
+        this.modals.rotationManage = false;
+        this.modals.applyRotation = false;
+        this.modals.statsDetail = false;
+        this.modals.moreSettings = false;
+      } else if (tab === 'shift') {
+        this.modals.shiftManage = true;
+      } else if (tab === 'rotation') {
+        this.modals.rotationManage = true;
+      } else if (tab === 'stats') {
+        this.modals.statsDetail = true;
+      } else if (tab === 'more') {
+        this.modals.moreSettings = true;
+      }
+    },
+
+    activePersonShift(cell) {
+      if (!cell) return null;
+      if (this.viewMode === 'p2') {
+        return cell.p2?.shift || null;
+      }
+      return cell.p1?.shift || null;
     },
 
     // =========================================================
@@ -1183,10 +1284,8 @@ const app = Vue.createApp({
         }
       };
 
-      // 大屏直接弹窗编辑，手机端支持先高亮选中卡片，可点击下方卡片按钮进入详细编辑
-      if (window.innerWidth >= 1024) {
-        this.modals.dayEdit = true;
-      }
+      // 单日点击立即弹出排班编辑弹窗 (手机端与桌面端统一顺畅交互)
+      this.modals.dayEdit = true;
     },
 
     openDayEditForSelected() {
