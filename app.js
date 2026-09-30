@@ -253,6 +253,7 @@ const app = Vue.createApp({
         moreSettings: false,     // 底部“我的/更多”设置面板
       },
 
+      SOLAR_TERMS_DB: SOLAR_TERMS_DB,
       currentNavTab: 'calendar', // 'calendar' | 'shift' | 'rotation' | 'stats' | 'more'
 
       // 批量删除/清空表单
@@ -696,6 +697,16 @@ const app = Vue.createApp({
         return cell.p2?.shift || null;
       }
       return cell.p1?.shift || null;
+    },
+
+    isSolarTerm(cell) {
+      if (!cell || !cell.dateStr) return false;
+      return Boolean(SOLAR_TERMS_DB && SOLAR_TERMS_DB[cell.dateStr]);
+    },
+
+    isTraditionalFestival(cell) {
+      if (!cell || !cell.holInfo || !cell.holInfo.name) return false;
+      return ['中秋','除夕','春节','端午','重阳','元旦','清明','国庆'].some(f => cell.holInfo.name.includes(f));
     },
 
     // =========================================================

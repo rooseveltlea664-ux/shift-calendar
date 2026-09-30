@@ -118,8 +118,8 @@
               <span 
                 class="cell-lunar-text"
                 :class="{ 
-                  'is-term': SOLAR_TERMS_DB[cell.dateStr],
-                  'is-festival': cell.holInfo && cell.holInfo.name && ['中秋','国庆','春节','元旦'].some(f => cell.holInfo.name.includes(f))
+                  'is-term': isSolarTerm(cell),
+                  'is-festival': isTraditionalFestival(cell)
                 }"
               >
                 {{ getLunarDayText(cell) }}
@@ -130,9 +130,9 @@
             <span 
               v-if="cell.holInfo" 
               class="statutory-badge"
-              :class="cell.holInfo.isHoliday ? 'holiday' : 'work'"
+              :class="cell.holInfo?.isHoliday ? 'holiday' : 'work'"
             >
-              {{ cell.holInfo.isHoliday ? '休' : '班' }}
+              {{ cell.holInfo?.isHoliday ? '休' : '班' }}
             </span>
 
             <!-- 班次胶囊区 (根据视图模式显示) -->
@@ -142,29 +142,29 @@
                 <div 
                   v-if="activePersonShift(cell)" 
                   class="single-shift-pill" 
-                  :style="{ backgroundColor: activePersonShift(cell).color }"
+                  :style="{ backgroundColor: activePersonShift(cell)?.color || '#3b82f6' }"
                 >
-                  {{ activePersonShift(cell).name }}
+                  {{ activePersonShift(cell)?.name }}
                 </div>
               </template>
 
               <!-- 双人同看模式：展示精炼紧凑双人微胶囊 -->
               <template v-else>
                 <div 
-                  v-if="cell.p1.shift" 
+                  v-if="cell.p1?.shift" 
                   class="dual-shift-pill" 
-                  :style="{ backgroundColor: cell.p1.shift.color }"
+                  :style="{ backgroundColor: cell.p1?.shift?.color || '#3b82f6' }"
                 >
                   <span class="dual-pill-badge">{{ p1Info.name }}</span>
-                  <span>{{ cell.p1.shift.name }}</span>
+                  <span>{{ cell.p1?.shift?.name }}</span>
                 </div>
                 <div 
-                  v-if="cell.p2.shift" 
+                  v-if="cell.p2?.shift" 
                   class="dual-shift-pill" 
-                  :style="{ backgroundColor: cell.p2.shift.color }"
+                  :style="{ backgroundColor: cell.p2?.shift?.color || '#ec4899' }"
                 >
                   <span class="dual-pill-badge">{{ p2Info.name }}</span>
-                  <span>{{ cell.p2.shift.name }}</span>
+                  <span>{{ cell.p2?.shift?.name }}</span>
                 </div>
               </template>
             </div>
@@ -195,17 +195,17 @@
         <div class="selected-day-bar-inner" @click="openDayEditForSelected">
           <div class="selected-day-text">
             <span>📅 {{ selectedDateStr }} 班次</span>
-            <span v-if="selectedDayDetail.isMutualRest" class="mutual-rest-legend !py-0.5 !text-[11px]">✦ 同休</span>
+            <span v-if="selectedDayDetail && selectedDayDetail.isMutualRest" class="mutual-rest-legend !py-0.5 !text-[11px]">✦ 同休</span>
           </div>
           
           <div class="selected-day-pill-preview">
-            <span v-if="selectedDayDetail.p1.shift" class="mini-badge" :style="{ backgroundColor: selectedDayDetail.p1.shift.color }">
-              {{ p1Info.name }}: {{ selectedDayDetail.p1.shift.name }}
+            <span v-if="selectedDayDetail?.p1?.shift" class="mini-badge" :style="{ backgroundColor: selectedDayDetail?.p1?.shift?.color }">
+              {{ p1Info.name }}: {{ selectedDayDetail?.p1?.shift?.name }}
             </span>
-            <span v-if="selectedDayDetail.p2.shift" class="mini-badge" :style="{ backgroundColor: selectedDayDetail.p2.shift.color }">
-              {{ p2Info.name }}: {{ selectedDayDetail.p2.shift.name }}
+            <span v-if="selectedDayDetail?.p2?.shift" class="mini-badge" :style="{ backgroundColor: selectedDayDetail?.p2?.shift?.color }">
+              {{ p2Info.name }}: {{ selectedDayDetail?.p2?.shift?.name }}
             </span>
-            <span v-if="!selectedDayDetail.p1.shift && !selectedDayDetail.p2.shift" class="text-xs text-slate-400">
+            <span v-if="!selectedDayDetail?.p1?.shift && !selectedDayDetail?.p2?.shift" class="text-xs text-slate-400">
               未排班 (点击排班)
             </span>
             <span class="text-slate-400 text-xs">✎</span>
@@ -356,13 +356,13 @@
             <div class="space-y-2.5">
               <div 
                 v-for="item in monthlyStats.p1.list" 
-                :key="item.shift.id"
+                :key="item.shift?.id || item.shift?.name"
                 class="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-700/40 border border-slate-100 dark:border-slate-700"
               >
                 <div class="flex items-center justify-between text-xs mb-1">
                   <div class="flex items-center gap-1.5">
-                    <span class="w-2.5 h-2.5 rounded-full" :style="{ backgroundColor: item.shift.color }"></span>
-                    <span class="font-bold text-slate-800 dark:text-slate-200">{{ item.shift.name }}</span>
+                    <span class="w-2.5 h-2.5 rounded-full" :style="{ backgroundColor: item.shift?.color || '#3b82f6' }"></span>
+                    <span class="font-bold text-slate-800 dark:text-slate-200">{{ item.shift?.name || '班次' }}</span>
                   </div>
                   <div class="font-semibold text-slate-700 dark:text-slate-200">
                     <span class="text-sm font-bold text-blue-600 dark:text-blue-400">{{ item.count }}</span> 天 
@@ -371,7 +371,7 @@
                 </div>
 
                 <div class="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
-                  <div class="h-full rounded-full" :style="{ width: item.percentage + '%', backgroundColor: item.shift.color }"></div>
+                  <div class="h-full rounded-full" :style="{ width: item.percentage + '%', backgroundColor: item.shift?.color || '#3b82f6' }"></div>
                 </div>
               </div>
             </div>
@@ -387,13 +387,13 @@
             <div class="space-y-2.5">
               <div 
                 v-for="item in monthlyStats.p2.list" 
-                :key="item.shift.id"
+                :key="item.shift?.id || item.shift?.name"
                 class="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-700/40 border border-slate-100 dark:border-slate-700"
               >
                 <div class="flex items-center justify-between text-xs mb-1">
                   <div class="flex items-center gap-1.5">
-                    <span class="w-2.5 h-2.5 rounded-full" :style="{ backgroundColor: item.shift.color }"></span>
-                    <span class="font-bold text-slate-800 dark:text-slate-200">{{ item.shift.name }}</span>
+                    <span class="w-2.5 h-2.5 rounded-full" :style="{ backgroundColor: item.shift?.color || '#ec4899' }"></span>
+                    <span class="font-bold text-slate-800 dark:text-slate-200">{{ item.shift?.name || '班次' }}</span>
                   </div>
                   <div class="font-semibold text-slate-700 dark:text-slate-200">
                     <span class="text-sm font-bold text-pink-600 dark:text-pink-400">{{ item.count }}</span> 天 
@@ -402,7 +402,7 @@
                 </div>
 
                 <div class="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
-                  <div class="h-full rounded-full" :style="{ width: item.percentage + '%', backgroundColor: item.shift.color }"></div>
+                  <div class="h-full rounded-full" :style="{ width: item.percentage + '%', backgroundColor: item.shift?.color || '#ec4899' }"></div>
                 </div>
               </div>
             </div>
@@ -1892,11 +1892,14 @@
 
   </div>
 
-  <!-- 引入 Vue 3 CDN (支持多源容错) -->
-  <script src="https://cdn.jsdelivr.net/npm/vue@3.4.21/dist/vue.global.prod.js"></script>
+  <!-- 引入 Vue 3 (优先本地同源加载，极致秒开并防 CDN 劫持/阻断) -->
+  <script src="vue.global.prod.js"></script>
   <script>
     if (typeof Vue === 'undefined') {
-      document.write('<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"><\/script>');
+      document.write('<script src="https://registry.npmmirror.com/vue/3.4.21/files/dist/vue.global.prod.js"><\\/script>');
+    }
+    if (typeof Vue === 'undefined') {
+      document.write('<script src="https://cdn.bootcdn.net/ajax/libs/vue/3.4.21/vue.global.prod.js"><\\/script>');
     }
   </script>
 
