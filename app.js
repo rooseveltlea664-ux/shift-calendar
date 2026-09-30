@@ -1,6 +1,6 @@
 /**
  * 智巡排班 (ShiftMaster) - 核心逻辑控制
- * 支持双人协同排班、共同休息日智能识别及云端跨设备实时自动同步
+ * 支持双人协同排班、共同休息日智能识别、中国法定节假日联动、批量清空与历史回撤、云端跨设备实时自动同步
  */
 
 // 预设默认班次定义
@@ -77,40 +77,102 @@ function formatDate(date) {
   return `${y}-${m}-${d}`;
 }
 
-// 节假日对照
-const HOLIDAYS = {
-  '01-01': '元旦',
-  '02-14': '情人节',
-  '03-08': '妇女节',
-  '04-05': '清明节',
-  '05-01': '劳动节',
-  '05-04': '青年节',
-  '06-01': '儿童节',
-  '07-01': '建党节',
-  '08-01': '建军节',
-  '09-10': '教师节',
-  '10-01': '国庆节',
-  '12-25': '圣诞节'
+// -------------------------------------------------------------
+// 中国法定节假日与调休补班完整权威数据库 (2025、2026年含除夕及假期延长方案)
+// isHoliday: true (法定放假日，标记 [休]), false (周末调休补班日，标记 [班])
+// -------------------------------------------------------------
+const CHINA_HOLIDAYS_DB = {
+  // 2025年法定安排
+  '2025-01-01': { name: '元旦', isHoliday: true },
+  '2025-01-26': { name: '春节调休', isHoliday: false },
+  '2025-01-28': { name: '除夕', isHoliday: true },
+  '2025-01-29': { name: '春节', isHoliday: true },
+  '2025-01-30': { name: '春节', isHoliday: true },
+  '2025-01-31': { name: '春节', isHoliday: true },
+  '2025-02-01': { name: '春节', isHoliday: true },
+  '2025-02-02': { name: '春节', isHoliday: true },
+  '2025-02-03': { name: '春节', isHoliday: true },
+  '2025-02-04': { name: '春节', isHoliday: true },
+  '2025-02-08': { name: '春节调休', isHoliday: false },
+  '2025-04-04': { name: '清明节', isHoliday: true },
+  '2025-04-05': { name: '清明节', isHoliday: true },
+  '2025-04-06': { name: '清明节', isHoliday: true },
+  '2025-04-27': { name: '劳动节调休', isHoliday: false },
+  '2025-05-01': { name: '劳动节', isHoliday: true },
+  '2025-05-02': { name: '劳动节', isHoliday: true },
+  '2025-05-03': { name: '劳动节', isHoliday: true },
+  '2025-05-04': { name: '劳动节', isHoliday: true },
+  '2025-05-05': { name: '劳动节', isHoliday: true },
+  '2025-05-31': { name: '端午节', isHoliday: true },
+  '2025-06-01': { name: '端午节', isHoliday: true },
+  '2025-06-02': { name: '端午节', isHoliday: true },
+  '2025-09-28': { name: '国庆调休', isHoliday: false },
+  '2025-10-01': { name: '国庆节', isHoliday: true },
+  '2025-10-02': { name: '国庆节', isHoliday: true },
+  '2025-10-03': { name: '国庆节', isHoliday: true },
+  '2025-10-04': { name: '中秋节', isHoliday: true },
+  '2025-10-05': { name: '国庆节', isHoliday: true },
+  '2025-10-06': { name: '国庆节', isHoliday: true },
+  '2025-10-07': { name: '国庆节', isHoliday: true },
+  '2025-10-08': { name: '国庆节', isHoliday: true },
+  '2025-10-11': { name: '国庆调休', isHoliday: false },
+
+  // 2026年法定安排 (含除夕及五一假期增加1天之优化安排)
+  '2026-01-01': { name: '元旦', isHoliday: true },
+  '2026-01-02': { name: '元旦', isHoliday: true },
+  '2026-01-03': { name: '元旦', isHoliday: true },
+  '2026-02-14': { name: '春节调休', isHoliday: false },
+  '2026-02-15': { name: '除夕放假', isHoliday: true },
+  '2026-02-16': { name: '除夕', isHoliday: true },
+  '2026-02-17': { name: '春节', isHoliday: true },
+  '2026-02-18': { name: '春节', isHoliday: true },
+  '2026-02-19': { name: '春节', isHoliday: true },
+  '2026-02-20': { name: '春节', isHoliday: true },
+  '2026-02-21': { name: '春节', isHoliday: true },
+  '2026-02-22': { name: '春节', isHoliday: true },
+  '2026-02-28': { name: '春节调休', isHoliday: false },
+  '2026-04-04': { name: '清明节', isHoliday: true },
+  '2026-04-05': { name: '清明节', isHoliday: true },
+  '2026-04-06': { name: '清明节', isHoliday: true },
+  '2026-04-26': { name: '劳动节调休', isHoliday: false },
+  '2026-05-01': { name: '劳动节', isHoliday: true },
+  '2026-05-02': { name: '劳动节', isHoliday: true },
+  '2026-05-03': { name: '劳动节', isHoliday: true },
+  '2026-05-04': { name: '劳动节', isHoliday: true },
+  '2026-05-05': { name: '劳动节', isHoliday: true },
+  '2026-05-09': { name: '劳动节调休', isHoliday: false },
+  '2026-06-19': { name: '端午节', isHoliday: true },
+  '2026-06-20': { name: '端午节', isHoliday: true },
+  '2026-06-21': { name: '端午节', isHoliday: true },
+  '2026-09-25': { name: '中秋节', isHoliday: true },
+  '2026-09-26': { name: '中秋节', isHoliday: true },
+  '2026-09-27': { name: '国庆调休', isHoliday: false },
+  '2026-10-01': { name: '国庆节', isHoliday: true },
+  '2026-10-02': { name: '国庆节', isHoliday: true },
+  '2026-10-03': { name: '国庆节', isHoliday: true },
+  '2026-10-04': { name: '国庆节', isHoliday: true },
+  '2026-10-05': { name: '国庆节', isHoliday: true },
+  '2026-10-06': { name: '国庆节', isHoliday: true },
+  '2026-10-07': { name: '国庆节', isHoliday: true },
+  '2026-10-10': { name: '国庆调休', isHoliday: false }
 };
 
 const app = Vue.createApp({
   data() {
-    // 读取本地存储或初始化
     const savedShifts = localStorage.getItem('shift_types_v1');
     const savedRotations = localStorage.getItem('shift_rotations_v1');
     const savedSchedules = localStorage.getItem('shift_schedules_v2') || localStorage.getItem('shift_schedules_v1');
     const savedPersons = localStorage.getItem('shift_persons_v1');
     const savedTheme = localStorage.getItem('shift_theme_v1') || 'light';
     const savedViewMode = localStorage.getItem('shift_view_mode_v1') || 'both';
+    const savedSnapshots = localStorage.getItem('shift_history_snapshots_v1');
 
-    // 云同步本地缓存
     const savedSyncRoom = localStorage.getItem('shift_sync_room_v1') || '';
     const savedSyncEndpoint = localStorage.getItem('shift_sync_endpoint_v1') || '';
     const savedLastModified = Number(localStorage.getItem('shift_last_modified_v1') || 0);
 
     const now = new Date();
 
-    // 格式化解析排班数据
     let initialSchedules = {};
     if (savedSchedules) {
       try {
@@ -147,6 +209,9 @@ const app = Vue.createApp({
       viewMode: savedViewMode,
       schedules: initialSchedules,
 
+      // 历史记录与快照 (用于二次确认清空后回撤恢复)
+      historySnapshots: savedSnapshots ? JSON.parse(savedSnapshots) : [],
+
       theme: savedTheme,
       filterShiftId: '',
       paletteColors: PALETTE_COLORS,
@@ -163,7 +228,18 @@ const app = Vue.createApp({
         statsDetail: false,
         exportImport: false,
         personSettings: false,
-        cloudSync: false, // ☁️ 云端同步设置弹窗
+        cloudSync: false,
+        clearConfirm: false,     // 批量/一键清空二次确认弹窗
+        historyManage: false,    // 操作历史与撤回管理
+        holidayCalendar: false,  // 法定节假日与调休查询日历
+      },
+
+      // 批量删除/清空表单
+      clearForm: {
+        mode: 'all', // 'all' (全量清空) | 'range' (按时间段清空)
+        startDate: formatDate(now),
+        endDate: formatDate(new Date(now.getFullYear(), now.getMonth() + 1, 0)),
+        targetPerson: 'both' // 'both' | 'p1' | 'p2'
       },
 
       // 云端自动同步核心状态
@@ -171,11 +247,11 @@ const app = Vue.createApp({
         enabled: Boolean(savedSyncRoom),
         roomId: savedSyncRoom,
         endpoint: savedSyncEndpoint,
-        status: savedSyncRoom ? 'syncing' : 'offline', // 'connected' | 'syncing' | 'offline' | 'error'
+        status: savedSyncRoom ? 'syncing' : 'offline',
         lastSyncTime: '',
         lastModified: savedLastModified,
         autoSyncInterval: 5000,
-        syncMode: 'auto', // 'auto' | 'sse' | 'poll'
+        syncMode: 'auto',
       },
       syncTimer: null,
       sseEventSource: null,
@@ -217,6 +293,7 @@ const app = Vue.createApp({
       },
       isEditingRotation: false,
 
+      // 开启轮班排班表单 (新功能：法定节假日联动选项)
       applyRotationForm: {
         targetPerson: 'both',
         startDate: formatDate(now),
@@ -228,7 +305,11 @@ const app = Vue.createApp({
         durationValue: 3,
         customEndDate: '',
         overwriteMode: 'all',
+        holidayRule: 'statutory_auto', // 'statutory_auto' (遇法定放假设为休息，遇调休设为白班) | 'holiday_rest_only' (仅法定假日设休) | 'none' (常规轮班不调整)
       },
+
+      // 节假日查询年
+      holidayQueryYear: 2026,
 
       statsTab: 'summary',
       toasts: [],
@@ -263,12 +344,27 @@ const app = Vue.createApp({
       return map;
     },
 
-    // 专属双人同步链接 (包含当前域名与房间号，方便一键复制发送给对方)
     roomShareUrl() {
       if (!this.syncConfig.roomId) return '';
       const url = new URL(window.location.href);
       url.searchParams.set('room', this.syncConfig.roomId);
       return url.toString();
+    },
+
+    // 当前查询年份的所有法定假期与补班清单
+    holidayQueryList() {
+      const year = String(this.holidayQueryYear);
+      const list = [];
+      Object.keys(CHINA_HOLIDAYS_DB).forEach(dStr => {
+        if (dStr.startsWith(year)) {
+          const info = CHINA_HOLIDAYS_DB[dStr];
+          list.push({
+            dateStr: dStr,
+            ...info
+          });
+        }
+      });
+      return list.sort((a, b) => a.dateStr.localeCompare(b.dateStr));
     },
 
     calendarDays() {
@@ -387,17 +483,31 @@ const app = Vue.createApp({
         const curDate = new Date(start);
         curDate.setDate(start.getDate() + i);
         const dateStr = formatDate(curDate);
+        const holInfo = this.getChinaHolidayInfo(dateStr);
 
         let p1Shift = null;
-        if (p1Plan && p1Plan.shiftIds.length > 0) {
-          const sId = p1Plan.shiftIds[(i + p1Offset) % p1Plan.shiftIds.length];
-          p1Shift = this.shiftMap[sId];
-        }
-
         let p2Shift = null;
-        if (p2Plan && p2Plan.shiftIds.length > 0) {
-          const sId = p2Plan.shiftIds[(i + p2Offset) % p2Plan.shiftIds.length];
-          p2Shift = this.shiftMap[sId];
+
+        // 联动法定节假日规则预览
+        if (form.holidayRule === 'statutory_auto' && holInfo) {
+          if (holInfo.isHoliday) {
+            const restShift = this.shiftTypes.find(s => this.isRest(s)) || { name: '休', color: '#10b981', code: '休' };
+            p1Shift = restShift;
+            p2Shift = restShift;
+          } else {
+            const workShift = this.shiftTypes.find(s => s.hours >= 8) || { name: '白班', color: '#06b6d4', code: '白' };
+            p1Shift = workShift;
+            p2Shift = workShift;
+          }
+        } else {
+          if (p1Plan && p1Plan.shiftIds.length > 0) {
+            const sId = p1Plan.shiftIds[(i + p1Offset) % p1Plan.shiftIds.length];
+            p1Shift = this.shiftMap[sId];
+          }
+          if (p2Plan && p2Plan.shiftIds.length > 0) {
+            const sId = p2Plan.shiftIds[(i + p2Offset) % p2Plan.shiftIds.length];
+            p2Shift = this.shiftMap[sId];
+          }
         }
 
         const isMutualRest = Boolean(p1Shift && p2Shift && this.isRest(p1Shift) && this.isRest(p2Shift));
@@ -407,7 +517,8 @@ const app = Vue.createApp({
           dayOfWeek: ['日','一','二','三','四','五','六'][curDate.getDay()],
           p1Shift: p1Shift || { name: '无', color: '#94a3b8', code: '-' },
           p2Shift: p2Shift || { name: '无', color: '#94a3b8', code: '-' },
-          isMutualRest
+          isMutualRest,
+          holInfo
         });
       }
       return previewList;
@@ -416,11 +527,8 @@ const app = Vue.createApp({
 
   mounted() {
     this.applyTheme();
-
-    // 1. 检查 URL 中是否有 ?room=XXXX 传参 (方便通过链接一键自动加入同步房间)
     this.checkUrlForRoomParam();
 
-    // 2. 首次进入若无排班，填充生动贴心的双人排班示例
     if (Object.keys(this.schedules).length === 0) {
       this.generateDemoSchedules();
     }
@@ -430,8 +538,6 @@ const app = Vue.createApp({
       this.applyRotationForm.p2PlanId = this.rotations.length > 1 ? this.rotations[1].id : this.rotations[0].id;
     }
     this.initPersonForm();
-
-    // 3. 启动云端同步监听 (自动长连接 / 定时轮询 / 页面唤醒自动刷新)
     this.initCloudSync();
   },
 
@@ -441,10 +547,137 @@ const app = Vue.createApp({
 
   methods: {
     // =========================================================
-    // ☁️ 云端自动同步引擎 (Cloud Auto-Sync Engine)
+    // 🇨🇳 中国法定节假日与调休补班查询
     // =========================================================
-    
-    // 检查 URL 参数是否携带房间号
+    getChinaHolidayInfo(dateStr) {
+      return CHINA_HOLIDAYS_DB[dateStr] || null;
+    },
+
+    // =========================================================
+    // 🛡️ 历史快照与撤回恢复系统 (Undo / Snapshot System)
+    // =========================================================
+    createHistorySnapshot(title, type = 'user_action', affectedCount = 0) {
+      const snapshot = {
+        id: 'snap_' + Date.now(),
+        title,
+        type,
+        affectedCount,
+        timestamp: Date.now(),
+        timeStr: new Date().toLocaleString('zh-CN', { hour12: false }),
+        dataBackup: JSON.parse(JSON.stringify(this.schedules))
+      };
+
+      this.historySnapshots.unshift(snapshot);
+      // 最多保留最近 30 次历史记录
+      if (this.historySnapshots.length > 30) {
+        this.historySnapshots = this.historySnapshots.slice(0, 30);
+      }
+      this.saveHistorySnapshots();
+    },
+
+    saveHistorySnapshots() {
+      localStorage.setItem('shift_history_snapshots_v1', JSON.stringify(this.historySnapshots));
+    },
+
+    // 打开二次确认清空弹窗
+    promptClearAll() {
+      this.clearForm.mode = 'all';
+      this.modals.clearConfirm = true;
+    },
+
+    promptClearRange() {
+      this.clearForm.mode = 'range';
+      this.modals.clearConfirm = true;
+    },
+
+    // 执行一键清空全部或范围清空
+    executeClearConfirm() {
+      const countBefore = Object.keys(this.schedules).length;
+
+      if (this.clearForm.mode === 'all') {
+        if (countBefore === 0) {
+          this.showToast('当前排班表已为空', 'info');
+          this.modals.clearConfirm = false;
+          return;
+        }
+
+        // 1. 自动生成历史快照，供随时一键撤回
+        this.createHistorySnapshot(`一键清空全量排班`, 'clear_all', countBefore);
+
+        // 2. 清空全部排班
+        this.schedules = {};
+        this.saveSchedulesToStorage();
+        this.modals.clearConfirm = false;
+        this.showToast(`已成功清空所有排班！已自动归档快照，可随时在「历史记录」中一键撤回`, 'success');
+      } else {
+        // 范围清空
+        const start = new Date(this.clearForm.startDate);
+        const end = new Date(this.clearForm.endDate);
+        if (isNaN(start.getTime()) || isNaN(end.getTime()) || end < start) {
+          this.showToast('请选择正确的清空起止日期', 'warning');
+          return;
+        }
+
+        this.createHistorySnapshot(`批量清空 ${this.clearForm.startDate} ~ ${this.clearForm.endDate} 排班`, 'clear_range', 0);
+
+        let cleared = 0;
+        const cur = new Date(start);
+        const target = this.clearForm.targetPerson;
+
+        while (cur <= end) {
+          const dStr = formatDate(cur);
+          if (this.schedules[dStr]) {
+            if (target === 'both') {
+              delete this.schedules[dStr];
+            } else if (target === 'p1') {
+              this.schedules[dStr].p1 = null;
+              if (!this.schedules[dStr].p2) delete this.schedules[dStr];
+            } else if (target === 'p2') {
+              this.schedules[dStr].p2 = null;
+              if (!this.schedules[dStr].p1) delete this.schedules[dStr];
+            }
+            cleared++;
+          }
+          cur.setDate(cur.getDate() + 1);
+        }
+
+        this.saveSchedulesToStorage();
+        this.modals.clearConfirm = false;
+        this.showToast(`已清空所选时间范围 (${cleared} 天) 的排班记录，可随时在历史记录中撤回`, 'success');
+      }
+    },
+
+    // 撤回 / 恢复到某个历史快照
+    rollbackSnapshot(snapshot) {
+      if (!confirm(`确定要撤回恢复到【${snapshot.title} (${snapshot.timeStr})】版本吗？\n当前的数据将被恢复至该时间点的状态。`)) return;
+
+      // 恢复前先将当前状态作为自动备份保存一次，避免后悔
+      this.createHistorySnapshot(`撤回恢复前自动备份`, 'auto_backup', Object.keys(this.schedules).length);
+
+      this.schedules = JSON.parse(JSON.stringify(snapshot.dataBackup || {}));
+      this.saveSchedulesToStorage();
+      this.modals.historyManage = false;
+      this.showToast(`已成功撤回恢复到版本：${snapshot.timeStr}`, 'success');
+    },
+
+    // 删除单条历史记录
+    deleteSnapshot(id) {
+      this.historySnapshots = this.historySnapshots.filter(s => s.id !== id);
+      this.saveHistorySnapshots();
+      this.showToast('该条历史记录已删除', 'info');
+    },
+
+    // 清空全部历史归档
+    clearAllSnapshots() {
+      if (!confirm('确定要清空所有的历史归档记录吗？该操作不可撤销。')) return;
+      this.historySnapshots = [];
+      this.saveHistorySnapshots();
+      this.showToast('所有历史记录已清除', 'info');
+    },
+
+    // =========================================================
+    // ☁️ 云端自动同步引擎
+    // =========================================================
     checkUrlForRoomParam() {
       try {
         const url = new URL(window.location.href);
@@ -463,7 +696,6 @@ const app = Vue.createApp({
       }
     },
 
-    // 获取实际同步 API URL
     getSyncApiUrl() {
       const roomId = encodeURIComponent(this.syncConfig.roomId.trim());
       if (this.syncConfig.endpoint && this.syncConfig.endpoint.trim()) {
@@ -471,35 +703,27 @@ const app = Vue.createApp({
         return `${base}/${roomId}`;
       }
 
-      // 如果当前通过 http/https 协议打开，默认探测本站 /api/sync
       if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
         return `/api/sync/${roomId}`;
       }
 
-      // 如果是直接双击 index.html (file:///) 运行，默认连向本地启动的 node 服务端口
       return `http://localhost:3000/api/sync/${roomId}`;
     },
 
-    // 获取 SSE 实时长连接 URL
     getSyncEventsUrl() {
       const apiUrl = this.getSyncApiUrl();
       return `${apiUrl}/events`;
     },
 
-    // 初始化云端自动同步机制
     initCloudSync() {
       if (!this.syncConfig.roomId) {
         this.syncConfig.status = 'offline';
         return;
       }
 
-      // 首次拉取最新数据
       this.pullFromCloud(true);
-
-      // 尝试建立 SSE 实时推送通道
       this.setupSSEConnection();
 
-      // 启动心跳/轮询定时器（每 5 秒轮询一次，保证在不支持 SSE 的环境下依然实时同步）
       if (!this.syncTimer) {
         this.syncTimer = setInterval(() => {
           if (this.syncConfig.roomId && !document.hidden) {
@@ -508,7 +732,6 @@ const app = Vue.createApp({
         }, 5000);
       }
 
-      // 监听浏览器标签页切换/手机熄屏唤醒：一旦回到页面，立即极速刷新同步一次！
       document.addEventListener('visibilitychange', () => {
         if (!document.hidden && this.syncConfig.roomId) {
           this.pullFromCloud(true);
@@ -521,7 +744,6 @@ const app = Vue.createApp({
       });
     },
 
-    // 建立 Server-Sent Events (SSE) 毫秒级长连接
     setupSSEConnection() {
       if (typeof EventSource === 'undefined' || !this.syncConfig.roomId) return;
 
@@ -550,7 +772,6 @@ const app = Vue.createApp({
         };
 
         this.sseEventSource.onerror = () => {
-          // SSE 失败时自动平滑回退到普通轮询模式，不影响用户使用
           this.syncConfig.status = 'connected';
         };
       } catch (err) {
@@ -569,7 +790,6 @@ const app = Vue.createApp({
       }
     },
 
-    // 从云端拉取排班数据
     async pullFromCloud(silent = false) {
       if (!this.syncConfig.roomId) return;
 
@@ -585,7 +805,6 @@ const app = Vue.createApp({
 
         const resData = await res.json();
         if (resData.exists && resData.data) {
-          // 比较时间戳，云端数据较新时才覆盖
           if (resData.lastModified > this.syncConfig.lastModified) {
             this.applyIncomingCloudData(resData.data, resData.lastModified);
             if (!silent) {
@@ -596,14 +815,12 @@ const app = Vue.createApp({
         this.syncConfig.status = 'connected';
         this.syncConfig.lastSyncTime = new Date().toLocaleTimeString();
       } catch (err) {
-        // 网络异常或本地无服务
         if (!silent) {
           this.showToast('连接云端同步服务失败，请检查网络或房间设置', 'warning');
         }
       }
     },
 
-    // 应用来自云端的最新排班数据
     applyIncomingCloudData(data, lastModified) {
       if (!data) return;
 
@@ -630,7 +847,6 @@ const app = Vue.createApp({
       this.syncConfig.lastSyncTime = new Date().toLocaleTimeString();
     },
 
-    // 防抖触发推送到云端 (在本地发生任意编辑修改时触发)
     triggerCloudPush() {
       if (!this.syncConfig.roomId) return;
 
@@ -642,7 +858,6 @@ const app = Vue.createApp({
       }, 400);
     },
 
-    // 真正执行推送到云端
     async pushToCloud() {
       if (!this.syncConfig.roomId) return;
 
@@ -675,14 +890,12 @@ const app = Vue.createApp({
       }
     },
 
-    // 生成随机高辨识度房间号 (如：LOVE-8921 或 SHIFT-3420)
     generateRandomRoomId() {
       const prefix = ['LOVE', 'HOME', 'SHIFT', 'TEAM', 'PAIR'][Math.floor(Math.random() * 5)];
       const num = Math.floor(1000 + Math.random() * 9000);
       this.syncConfig.roomId = `${prefix}-${num}`;
     },
 
-    // 保存房间配置
     saveSyncConfig() {
       const room = this.syncConfig.roomId.trim();
       if (!room) {
@@ -695,14 +908,12 @@ const app = Vue.createApp({
       this.syncConfig.enabled = true;
       this.modals.cloudSync = false;
 
-      // 重新建立连接并立刻推送本地现有数据到房间中
       this.cleanupCloudSync();
       this.initCloudSync();
       this.pushToCloud();
       this.showToast(`已开启云端实时同步！房间：${room}`, 'success');
     },
 
-    // 退出当前同步房间
     leaveSyncRoom() {
       if (!confirm('确定要退出当前同步房间吗？本地已有的排班数据依然会保留。')) return;
 
@@ -715,7 +926,6 @@ const app = Vue.createApp({
       this.showToast('已断开云端同步', 'info');
     },
 
-    // 一键复制双人专属同步链接
     copyShareLink() {
       if (!this.syncConfig.roomId) {
         this.showToast('请先设置房间号', 'warning');
@@ -771,7 +981,8 @@ const app = Vue.createApp({
       const isMutualRest = Boolean(p1Shift && p2Shift && p1IsRest && p2IsRest);
       const isSameShift = Boolean(p1Shift && p2Shift && !p1IsRest && !p2IsRest && p1Shift.id === p2Shift.id);
 
-      const holiday = HOLIDAYS[dateStr.substring(5)] || '';
+      // 法定节假日与调休补班识别
+      const holInfo = this.getChinaHolidayInfo(dateStr);
 
       return {
         dateObj,
@@ -785,7 +996,7 @@ const app = Vue.createApp({
         p2: { data: p2, shift: p2Shift, isRest: p2IsRest },
         isMutualRest,
         isSameShift,
-        holiday
+        holInfo
       };
     },
 
@@ -939,7 +1150,6 @@ const app = Vue.createApp({
       }
     },
 
-    // 保存单日修改 (同时本地持久化并自动推送到云端)
     saveDayEdit() {
       const dateStr = this.activeDayForm.dateStr;
       const p1 = this.activeDayForm.p1;
@@ -968,7 +1178,7 @@ const app = Vue.createApp({
       this.modals.applyRotation = true;
     },
 
-    // 自动轮班排班核心执行逻辑
+    // 自动轮班排班核心执行逻辑 (包含法定节假日智能判定与备份快照)
     executeApplyRotation() {
       const form = this.applyRotationForm;
       const target = form.targetPerson;
@@ -1009,8 +1219,15 @@ const app = Vue.createApp({
         return;
       }
 
+      // 执行轮班排班前，自动创建备份快照
+      this.createHistorySnapshot(`自动轮班排班生成前备份 (${form.startDate} 起)`, 'apply_rotation', Object.keys(this.schedules).length);
+
       const p1Offset = Number(form.p1Offset) || 0;
       const p2Offset = Number(form.p2Offset) || 0;
+
+      // 寻找通用休息班次和常白班班次
+      const restShiftObj = this.shiftTypes.find(s => this.isRest(s)) || this.shiftTypes[0];
+      const workShiftObj = this.shiftTypes.find(s => !this.isRest(s)) || this.shiftTypes[0];
 
       let countAssigned = 0;
       const cur = new Date(start);
@@ -1019,29 +1236,67 @@ const app = Vue.createApp({
       while (cur <= end) {
         const dateStr = formatDate(cur);
         const existing = this.schedules[dateStr] || { p1: null, p2: null };
+        const holInfo = this.getChinaHolidayInfo(dateStr);
 
         let nextP1 = existing.p1 ? { ...existing.p1 } : null;
         let nextP2 = existing.p2 ? { ...existing.p2 } : null;
 
+        // 计算 P1 班次
         if (target === 'p1' || target === 'both') {
           if (form.overwriteMode === 'all' || !nextP1 || !nextP1.shiftId) {
-            const sId = p1Plan.shiftIds[(dayIndex + p1Offset) % p1Plan.shiftIds.length];
-            const shift = this.shiftMap[sId];
+            let finalShiftId = null;
+            let noteExtra = '';
+
+            // 法定假日联动判定
+            if (form.holidayRule === 'statutory_auto' && holInfo) {
+              if (holInfo.isHoliday) {
+                finalShiftId = restShiftObj.id;
+                noteExtra = `【${holInfo.name}放假】`;
+              } else {
+                finalShiftId = workShiftObj.id;
+                noteExtra = `【${holInfo.name}调休上班】`;
+              }
+            } else if (form.holidayRule === 'holiday_rest_only' && holInfo && holInfo.isHoliday) {
+              finalShiftId = restShiftObj.id;
+              noteExtra = `【${holInfo.name}放假】`;
+            } else {
+              finalShiftId = p1Plan.shiftIds[(dayIndex + p1Offset) % p1Plan.shiftIds.length];
+            }
+
+            const shift = this.shiftMap[finalShiftId];
             nextP1 = {
-              shiftId: sId,
-              note: nextP1 && nextP1.note ? nextP1.note : '',
+              shiftId: finalShiftId,
+              note: (nextP1 && nextP1.note ? nextP1.note + ' ' : '') + noteExtra,
               hours: shift ? shift.hours : 8
             };
           }
         }
 
+        // 计算 P2 班次
         if (target === 'p2' || target === 'both') {
           if (form.overwriteMode === 'all' || !nextP2 || !nextP2.shiftId) {
-            const sId = p2Plan.shiftIds[(dayIndex + p2Offset) % p2Plan.shiftIds.length];
-            const shift = this.shiftMap[sId];
+            let finalShiftId = null;
+            let noteExtra = '';
+
+            if (form.holidayRule === 'statutory_auto' && holInfo) {
+              if (holInfo.isHoliday) {
+                finalShiftId = restShiftObj.id;
+                noteExtra = `【${holInfo.name}放假】`;
+              } else {
+                finalShiftId = workShiftObj.id;
+                noteExtra = `【${holInfo.name}调休上班】`;
+              }
+            } else if (form.holidayRule === 'holiday_rest_only' && holInfo && holInfo.isHoliday) {
+              finalShiftId = restShiftObj.id;
+              noteExtra = `【${holInfo.name}放假】`;
+            } else {
+              finalShiftId = p2Plan.shiftIds[(dayIndex + p2Offset) % p2Plan.shiftIds.length];
+            }
+
+            const shift = this.shiftMap[finalShiftId];
             nextP2 = {
-              shiftId: sId,
-              note: nextP2 && nextP2.note ? nextP2.note : '',
+              shiftId: finalShiftId,
+              note: (nextP2 && nextP2.note ? nextP2.note + ' ' : '') + noteExtra,
               hours: shift ? shift.hours : 8
             };
           }
@@ -1060,37 +1315,6 @@ const app = Vue.createApp({
       this.currentYear = start.getFullYear();
       this.currentMonth = start.getMonth();
       this.syncJumpInputs();
-    },
-
-    clearRotationRange() {
-      if (!confirm('确定要清空所选时间范围内的所有排班数据吗？该操作不可撤销。')) return;
-
-      const form = this.applyRotationForm;
-      const start = new Date(form.startDate);
-      let end = new Date(start);
-
-      if (form.rangeType === 'months') {
-        end.setMonth(end.getMonth() + (Number(form.durationValue) || 1));
-      } else if (form.rangeType === 'days') {
-        end.setDate(end.getDate() + (Number(form.durationValue) || 30));
-      } else if (form.rangeType === 'until' && form.customEndDate) {
-        end = new Date(form.customEndDate);
-      }
-
-      let cleared = 0;
-      const cur = new Date(start);
-      while (cur <= end) {
-        const dateStr = formatDate(cur);
-        if (this.schedules[dateStr]) {
-          delete this.schedules[dateStr];
-          cleared++;
-        }
-        cur.setDate(cur.getDate() + 1);
-      }
-
-      this.saveSchedulesToStorage();
-      this.modals.applyRotation = false;
-      this.showToast(`已清除 ${cleared} 天的排班记录`, 'info');
     },
 
     initPersonForm() {
@@ -1299,6 +1523,7 @@ const app = Vue.createApp({
       this.rotations = JSON.parse(JSON.stringify(DEFAULT_ROTATIONS));
       this.persons = JSON.parse(JSON.stringify(DEFAULT_PERSONS));
       this.schedules = {};
+      this.historySnapshots = [];
       this.generateDemoSchedules();
       this.saveShiftsToStorage();
       this.saveRotationsToStorage();
@@ -1309,12 +1534,13 @@ const app = Vue.createApp({
 
     exportJSON() {
       const data = {
-        version: '2.1',
+        version: '2.2',
         exportedAt: new Date().toISOString(),
         persons: this.persons,
         shiftTypes: this.shiftTypes,
         rotations: this.rotations,
-        schedules: this.schedules
+        schedules: this.schedules,
+        historySnapshots: this.historySnapshots
       };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       this.downloadBlob(blob, `智巡双人排班备份_${formatDate(new Date())}.json`);
@@ -1333,9 +1559,11 @@ const app = Vue.createApp({
           if (parsed.shiftTypes) this.shiftTypes = parsed.shiftTypes;
           if (parsed.rotations) this.rotations = parsed.rotations;
           if (parsed.schedules) this.schedules = parsed.schedules;
+          if (parsed.historySnapshots) this.historySnapshots = parsed.historySnapshots;
           this.saveShiftsToStorage();
           this.saveRotationsToStorage();
           this.saveSchedulesToStorage();
+          this.saveHistorySnapshots();
           this.initPersonForm();
           this.showToast('双人数据恢复成功！', 'success');
           this.modals.exportImport = false;
@@ -1350,7 +1578,7 @@ const app = Vue.createApp({
     exportCSV() {
       const p1N = this.p1Info.name;
       const p2N = this.p2Info.name;
-      let csvContent = `\uFEFF日期,星期,${p1N}班次,${p1N}工时,${p1N}备注,${p2N}班次,${p2N}工时,${p2N}备注,是否共同休息\n`;
+      let csvContent = `\uFEFF日期,星期,法定假日/调休,${p1N}班次,${p1N}工时,${p1N}备注,${p2N}班次,${p2N}工时,${p2N}备注,是否共同休息\n`;
 
       const year = this.currentYear;
       const month = this.currentMonth;
@@ -1362,6 +1590,8 @@ const app = Vue.createApp({
         const dateStr = formatDate(dateObj);
         const weekday = weekNames[dateObj.getDay()];
         const sched = this.schedules[dateStr] || {};
+        const hol = this.getChinaHolidayInfo(dateStr);
+        const holText = hol ? (hol.isHoliday ? `【休】${hol.name}` : `【班】${hol.name}`) : '-';
 
         const p1 = sched.p1;
         const p2 = sched.p2;
@@ -1379,7 +1609,7 @@ const app = Vue.createApp({
         const p2Hours = p2 ? (p2.hours !== undefined ? p2.hours : (s2 ? s2.hours : 0)) : 0;
         const p2Note = p2 && p2.note ? `"${p2.note.replace(/"/g, '""')}"` : '';
 
-        csvContent += `${dateStr},${weekday},${p1Name},${p1Hours},${p1Note},${p2Name},${p2Hours},${p2Note},${isMutualRest ? '★共同休息日★' : '否'}\n`;
+        csvContent += `${dateStr},${weekday},${holText},${p1Name},${p1Hours},${p1Note},${p2Name},${p2Hours},${p2Note},${isMutualRest ? '★共同休息日★' : '否'}\n`;
       }
 
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -1426,6 +1656,8 @@ const app = Vue.createApp({
         }
 
         const descParts = [];
+        const hol = this.getChinaHolidayInfo(dateStr);
+        if (hol) descParts.push(hol.isHoliday ? `法定节假日: ${hol.name}放假` : `法定节假日: ${hol.name}补班`);
         if (sched.p1 && sched.p1.note) descParts.push(`${p1N}备注: ${sched.p1.note}`);
         if (sched.p2 && sched.p2.note) descParts.push(`${p2N}备注: ${sched.p2.note}`);
         const description = descParts.join('; ') || '智巡排班双人同步';

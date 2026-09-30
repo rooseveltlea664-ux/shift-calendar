@@ -640,3 +640,111 @@ body {
   50% { opacity: 0.4; transform: scale(1.25); }
   100% { opacity: 1; transform: scale(1); }
 }
+
+/* 法定放假 [休] 与调休补班 [班] 徽章 */
+.statutory-badge-holiday {
+  font-size: 9px;
+  font-weight: 700;
+  color: #dc2626;
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  padding: 0.5px 3.5px;
+  border-radius: 3px;
+  line-height: 1.2;
+  display: inline-flex;
+  align-items: center;
+}
+[data-theme="dark"] .statutory-badge-holiday {
+  color: #f87171;
+  background: rgba(239, 68, 68, 0.22);
+  border-color: rgba(239, 68, 68, 0.45);
+}
+
+.statutory-badge-work {
+  font-size: 9px;
+  font-weight: 700;
+  color: #d97706;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  padding: 0.5px 3.5px;
+  border-radius: 3px;
+  line-height: 1.2;
+  display: inline-flex;
+  align-items: center;
+}
+[data-theme="dark"] .statutory-badge-work {
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.22);
+  border-color: rgba(245, 158, 11, 0.45);
+}
+
+/* 历史快照时间轴项 */
+.history-item-card {
+  border: 1px solid var(--border-color);
+  background: var(--bg-surface);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  transition: all 0.15s ease;
+}
+.history-item-card:hover {
+  border-color: var(--accent-color);
+  box-shadow: var(--shadow-sm);
+}
+
+/* 移动端与全端适配增强 (Mobile & Tablet Responsiveness) */
+@media (max-width: 768px) {
+  .calendar-container {
+    border-radius: 12px;
+  }
+  .calendar-cell {
+    min-height: 82px !important;
+    padding: 3px 4px !important;
+  }
+  .cell-date-num {
+    font-size: 11px !important;
+  }
+  .person-shift-pill {
+    padding: 1.5px 3.5px !important;
+    margin-top: 2px !important;
+    font-size: 10px !important;
+    border-radius: 4px !important;
+  }
+  .person-label-tag {
+    font-size: 8px !important;
+    padding: 0 2px !important;
+    margin-right: 2px !important;
+  }
+  .mutual-rest-badge {
+    font-size: 8.5px !important;
+    padding: 0.5px 3px !important;
+  }
+  .cell-remark-badge {
+    display: none; /* 移动端日历格子空间紧张时隐藏文本，点击单日即可查看完整备注 */
+  }
+
+  /* 移动端模态框优化为底部抽屉式滑出 */
+  .modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+  .modal-card {
+    max-height: 88vh;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    animation: slideUpMobile 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .modal-header {
+    padding: 14px 16px;
+  }
+  .modal-body {
+    padding: 14px 16px;
+  }
+  .modal-footer {
+    padding: 10px 16px;
+  }
+}
+
+@keyframes slideUpMobile {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}

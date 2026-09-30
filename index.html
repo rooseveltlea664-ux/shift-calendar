@@ -111,30 +111,48 @@
             <span>开启轮班</span>
           </button>
 
+          <!-- 批量/一键清空排班 (新功能 1) -->
+          <button @click="promptClearAll" class="btn btn-outline btn-sm text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/60 hover:bg-red-50 dark:hover:bg-red-950/40" title="批量清空排班 (带二次防误触确认与快照备份)">
+            <span>🗑️ 清空</span>
+          </button>
+
+          <!-- 操作历史记录与撤销 (新功能 1-1) -->
+          <button @click="modals.historyManage = true" class="btn btn-outline btn-sm relative" title="查看操作快照，支持一键撤回恢复与删除历史">
+            <span>🕒 历史</span>
+            <span v-if="historySnapshots.length > 0" class="absolute -top-1.5 -right-1.5 px-1.5 py-0.2 bg-blue-600 text-white rounded-full text-[10px] font-bold">
+              {{ historySnapshots.length }}
+            </span>
+          </button>
+
+          <!-- 法定节假日全景查询 (新功能 2) -->
+          <button @click="modals.holidayCalendar = true" class="btn btn-outline btn-sm text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/50" title="查询国务院中国法定节假日及调休补班安排">
+            <span>🇨🇳 假日</span>
+          </button>
+
           <!-- 双人身份与称谓设置 -->
-          <button @click="modals.personSettings = true" class="btn btn-outline btn-sm">
+          <button @click="modals.personSettings = true" class="btn btn-outline btn-sm hidden sm:inline-flex">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
             </svg>
-            <span class="hidden sm:inline">双人设置</span>
+            <span>双人设置</span>
           </button>
 
           <!-- 班次管理 -->
-          <button @click="modals.shiftManage = true" class="btn btn-outline btn-sm hidden md:inline-flex">
+          <button @click="modals.shiftManage = true" class="btn btn-outline btn-sm hidden lg:inline-flex">
             <span>班次配置</span>
           </button>
 
           <!-- 轮班方案 -->
-          <button @click="modals.rotationManage = true" class="btn btn-outline btn-sm hidden md:inline-flex">
+          <button @click="modals.rotationManage = true" class="btn btn-outline btn-sm hidden lg:inline-flex">
             <span>轮班方案</span>
           </button>
 
           <!-- 导入导出 -->
-          <button @click="modals.exportImport = true" class="btn btn-outline btn-sm" title="导出/备份数据">
+          <button @click="modals.exportImport = true" class="btn btn-outline btn-sm hidden md:inline-flex" title="导出/备份数据">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
             </svg>
-            <span class="hidden lg:inline">导入/导出</span>
+            <span>导入/导出</span>
           </button>
 
           <!-- 主题切换 -->
@@ -252,9 +270,18 @@
               <div class="flex items-baseline justify-between">
                 <span class="cell-date-num">{{ cell.dayNumber }}</span>
                 
-                <div class="flex items-center gap-1">
+                <div class="flex items-center gap-1 flex-wrap justify-end">
+                  <!-- 中国法定放假 [休] 或 调休补班 [班] (新功能 2) -->
+                  <span 
+                    v-if="cell.holInfo" 
+                    :class="cell.holInfo.isHoliday ? 'statutory-badge-holiday' : 'statutory-badge-work'"
+                    :title="cell.holInfo.isHoliday ? '国家法定放假: ' + cell.holInfo.name : '周末调休补班: ' + cell.holInfo.name"
+                  >
+                    {{ cell.holInfo.isHoliday ? '休' : '班' }}·{{ cell.holInfo.name }}
+                  </span>
+
                   <!-- 传统公历节日 -->
-                  <span v-if="cell.holiday" class="text-[10px] font-medium text-red-500 truncate max-w-[45px]">
+                  <span v-else-if="cell.holiday" class="text-[10px] font-medium text-red-500 truncate max-w-[45px]">
                     {{ cell.holiday }}
                   </span>
                   
@@ -906,6 +933,69 @@
               </div>
             </div>
 
+          <!-- 冲突处理规则与法定节假日联动设置 (新功能 2) -->
+          <div class="space-y-3">
+            
+            <!-- 冲突覆盖规则 -->
+            <div class="p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/30">
+              <label class="form-label !mb-1.5">已有排班冲突处理规则：</label>
+              <div class="flex items-center gap-6 text-xs">
+                <label class="flex items-center gap-2 cursor-pointer font-medium">
+                  <input type="radio" value="all" v-model="applyRotationForm.overwriteMode">
+                  <span>全部覆盖 (重新铺排所选时段)</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" value="empty_only" v-model="applyRotationForm.overwriteMode">
+                  <span>仅填充空白 (保留之前单独修改过的班次与调休备注)</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- 法定节假日与调休补班联动规则 (核心新需求 2) -->
+            <div class="p-3.5 rounded-lg border border-red-200 dark:border-red-900/60 bg-red-50/40 dark:bg-red-950/20 space-y-2">
+              <div class="flex items-center justify-between">
+                <label class="form-label !mb-0 text-red-900 dark:text-red-300 font-bold flex items-center gap-1.5 text-xs">
+                  <span>🇨🇳</span>
+                  <span>法定节假日与调休补班联动处理：</span>
+                </label>
+                <button type="button" @click="modals.holidayCalendar = true" class="text-xs text-red-600 dark:text-red-400 hover:underline">
+                  查看法定假期表 ↗
+                </button>
+              </div>
+
+              <div class="space-y-2 text-xs">
+                <label class="flex items-start gap-2 cursor-pointer p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/30">
+                  <input type="radio" value="statutory_auto" v-model="applyRotationForm.holidayRule" class="mt-0.5">
+                  <div>
+                    <span class="font-bold text-slate-800 dark:text-slate-200">
+                      自动遵循国家法定放假与补班安排
+                    </span>
+                    <span class="text-[10px] ml-1.5 px-1.5 py-0.2 rounded bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 font-bold">
+                      推荐标准
+                    </span>
+                    <p class="text-[11px] text-slate-500 mt-0.5">
+                      遇到法定放假（春节、国庆、五一、端午等）强制自动设为<strong>「休息」</strong>；遇到周末调休补班强制自动设为<strong>「白班」</strong>。
+                    </p>
+                  </div>
+                </label>
+
+                <label class="flex items-start gap-2 cursor-pointer p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/30">
+                  <input type="radio" value="holiday_rest_only" v-model="applyRotationForm.holidayRule" class="mt-0.5">
+                  <div>
+                    <span class="font-semibold text-slate-800 dark:text-slate-200">仅在法定节假日当天放假设为「休息」</span>
+                    <p class="text-[11px] text-slate-500 mt-0.5">节假日放假设为休息，但不调整周末调休补班日。</p>
+                  </div>
+                </label>
+
+                <label class="flex items-start gap-2 cursor-pointer p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/30">
+                  <input type="radio" value="none" v-model="applyRotationForm.holidayRule" class="mt-0.5">
+                  <div>
+                    <span class="text-slate-700 dark:text-slate-300">不联动节假日（严格遵循轮班方案天数连续循环）</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+
           </div>
 
           <!-- 实时双人排班预览对比 -->
@@ -1533,6 +1623,274 @@
               ✓ 保存并开启同步
             </button>
           </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- 模态框 8：🗑️ 批量清空与一键清除二次防误触确认 (核心新功能 1) -->
+    <!-- ========================================================= -->
+    <div v-if="modals.clearConfirm" class="modal-overlay" @click.self="modals.clearConfirm = false">
+      <div class="modal-card !max-w-md">
+        
+        <div class="modal-header bg-red-50 dark:bg-red-950/30 border-b border-red-100 dark:border-red-900/40">
+          <div class="flex items-center gap-2">
+            <span class="text-2xl">⚠️</span>
+            <div>
+              <h3 class="text-base font-bold text-red-900 dark:text-red-300">
+                批量清空排班数据 (二次确认)
+              </h3>
+              <p class="text-xs text-red-700/80 dark:text-red-400/80">操作前系统会自动归档历史快照，随时可撤回恢复</p>
+            </div>
+          </div>
+          <button @click="modals.clearConfirm = false" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+        </div>
+
+        <div class="modal-body space-y-4">
+          
+          <!-- 清空模式选择 -->
+          <div class="space-y-2">
+            <label class="form-label !mb-1 text-slate-800 dark:text-slate-200">请选择清空模式：</label>
+            
+            <label class="flex items-start gap-2.5 p-3 rounded-lg border cursor-pointer transition"
+              :class="clearForm.mode === 'all' ? 'border-red-500 bg-red-50/50 dark:bg-red-950/30' : 'border-slate-200 dark:border-slate-700'"
+            >
+              <input type="radio" value="all" v-model="clearForm.mode" class="mt-0.5">
+              <div>
+                <span class="font-bold text-sm text-red-700 dark:text-red-300">一键清空所有已排班次</span>
+                <p class="text-xs text-slate-500 mt-0.5">将全部日历上的已排班次重置为空白状态（共 {{ Object.keys(schedules).length }} 天）</p>
+              </div>
+            </label>
+
+            <label class="flex items-start gap-2.5 p-3 rounded-lg border cursor-pointer transition"
+              :class="clearForm.mode === 'range' ? 'border-red-500 bg-red-50/50 dark:bg-red-950/30' : 'border-slate-200 dark:border-slate-700'"
+            >
+              <input type="radio" value="range" v-model="clearForm.mode" class="mt-0.5">
+              <div>
+                <span class="font-bold text-sm text-slate-800 dark:text-slate-200">指定日期范围与人员批量清空</span>
+                <p class="text-xs text-slate-500 mt-0.5">仅清空所选时间区间内的排班，保留其他月份日程</p>
+              </div>
+            </label>
+          </div>
+
+          <!-- 范围清空子表单 -->
+          <div v-if="clearForm.mode === 'range'" class="space-y-3 p-3 bg-slate-50 dark:bg-slate-700/30 rounded-lg border border-slate-200 dark:border-slate-700">
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="text-[11px] text-slate-500 block mb-1">起始日期：</label>
+                <input type="date" v-model="clearForm.startDate" class="form-input text-xs font-medium">
+              </div>
+              <div>
+                <label class="text-[11px] text-slate-500 block mb-1">截止日期：</label>
+                <input type="date" v-model="clearForm.endDate" class="form-input text-xs font-medium">
+              </div>
+            </div>
+
+            <div>
+              <label class="text-[11px] text-slate-500 block mb-1">清空对象：</label>
+              <div class="flex gap-4 text-xs">
+                <label class="flex items-center gap-1.5 cursor-pointer">
+                  <input type="radio" value="both" v-model="clearForm.targetPerson">
+                  <span>双人全部</span>
+                </label>
+                <label class="flex items-center gap-1.5 cursor-pointer">
+                  <input type="radio" value="p1" v-model="clearForm.targetPerson">
+                  <span>仅【{{ p1Info.name }}】</span>
+                </label>
+                <label class="flex items-center gap-1.5 cursor-pointer">
+                  <input type="radio" value="p2" v-model="clearForm.targetPerson">
+                  <span>仅【{{ p2Info.name }}】</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- 安全防误触提示与撤回说明 -->
+          <div class="p-3 bg-emerald-50/70 dark:bg-emerald-950/30 rounded-lg border border-emerald-200 dark:border-emerald-800/60 text-xs space-y-1 text-emerald-900 dark:text-emerald-300">
+            <div class="font-bold flex items-center gap-1.5">
+              <span>🛡️ 安全防误触保障</span>
+            </div>
+            <p class="text-[11px] text-emerald-800/90 dark:text-emerald-400">
+              系统会在清空瞬间为您**自动创建历史快照**保存在本地。如果不小心点错或需要找回，随时可以在右上角「🕒 历史」中一键撤回恢复！
+            </p>
+          </div>
+
+        </div>
+
+        <div class="modal-footer justify-between">
+          <button @click="modals.clearConfirm = false" class="btn btn-secondary">取消</button>
+          <button @click="executeClearConfirm" class="btn btn-danger font-bold">
+            ⚠️ 确认清空
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- 模态框 9：🕒 操作历史快照记录与一键撤销管理 (核心新功能 1-1) -->
+    <!-- ========================================================= -->
+    <div v-if="modals.historyManage" class="modal-overlay" @click.self="modals.historyManage = false">
+      <div class="modal-card !max-w-2xl">
+        
+        <div class="modal-header">
+          <div>
+            <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <span>🕒 排班操作历史与撤回管理</span>
+              <span class="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 rounded font-bold">
+                {{ historySnapshots.length }} 条快照
+              </span>
+            </h3>
+            <p class="text-xs text-slate-500 mt-0.5">每次批量清空、轮班生成或重大操作前均会自动归档快照，支持一键撤销恢复</p>
+          </div>
+          <button @click="modals.historyManage = false" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+        </div>
+
+        <div class="modal-body space-y-3">
+          
+          <div v-if="historySnapshots.length > 0" class="space-y-2.5">
+            <div 
+              v-for="snap in historySnapshots" 
+              :key="snap.id"
+              class="history-item-card flex items-center justify-between"
+            >
+              <div>
+                <div class="font-bold text-sm text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                  <span>{{ snap.title }}</span>
+                  <span class="text-[10px] px-1.5 py-0.2 rounded font-normal"
+                    :class="snap.type === 'clear_all' ? 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300'"
+                  >
+                    {{ snap.type === 'clear_all' ? '全量清空' : '操作快照' }}
+                  </span>
+                </div>
+                <div class="text-xs text-slate-400 mt-1 flex items-center gap-3">
+                  <span>操作时间: {{ snap.timeStr }}</span>
+                  <span>备份前排班天数: {{ Object.keys(snap.dataBackup || {}).length }} 天</span>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <button 
+                  @click="rollbackSnapshot(snap)" 
+                  class="btn btn-outline btn-sm text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800 hover:bg-blue-50"
+                  title="撤回恢复到此版本状态"
+                >
+                  🔄 一键撤回恢复
+                </button>
+                <button 
+                  @click="deleteSnapshot(snap.id)" 
+                  class="btn btn-outline btn-sm text-slate-400 hover:text-red-600 hover:border-red-300"
+                  title="删除该条历史快照"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div v-else class="text-center py-10 border border-dashed rounded-xl text-slate-400 text-xs">
+            暂无历史快照记录。<br>在执行一键清空或大范围自动排班时，系统将自动在此创建备份归档。
+          </div>
+
+        </div>
+
+        <div class="modal-footer justify-between">
+          <button 
+            v-if="historySnapshots.length > 0" 
+            @click="clearAllSnapshots" 
+            class="btn btn-outline btn-sm text-red-600 border-red-200 text-xs"
+          >
+            清空所有历史归档
+          </button>
+          <div v-else></div>
+
+          <button @click="modals.historyManage = false" class="btn btn-primary">关闭</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- 模态框 10：🇨🇳 中国法定节假日与调休补班全景查询 (核心新功能 2) -->
+    <!-- ========================================================= -->
+    <div v-if="modals.holidayCalendar" class="modal-overlay" @click.self="modals.holidayCalendar = false">
+      <div class="modal-card !max-w-2xl">
+        
+        <div class="modal-header">
+          <div class="flex items-center gap-2">
+            <span class="text-2xl">🇨🇳</span>
+            <div>
+              <h3 class="text-base font-bold text-slate-900 dark:text-white">
+                国务院法定节假日与调休补班权威日历
+              </h3>
+              <p class="text-xs text-slate-500 mt-0.5">智能查询当年法定放假安排与周末调休补班安排</p>
+            </div>
+          </div>
+          <button @click="modals.holidayCalendar = false" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+        </div>
+
+        <div class="modal-body space-y-4">
+          
+          <!-- 年份切换 -->
+          <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
+            <span class="text-xs font-bold text-slate-700 dark:text-slate-300">切换查询年度：</span>
+            <div class="flex gap-2">
+              <button 
+                @click="holidayQueryYear = 2025" 
+                class="btn btn-sm"
+                :class="holidayQueryYear === 2025 ? 'btn-primary' : 'btn-outline'"
+              >
+                2025 年度
+              </button>
+              <button 
+                @click="holidayQueryYear = 2026" 
+                class="btn btn-sm"
+                :class="holidayQueryYear === 2026 ? 'btn-primary' : 'btn-outline'"
+              >
+                2026 年度 (含除夕优化)
+              </button>
+            </div>
+          </div>
+
+          <!-- 法定节假日卡片网格 -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1">
+            <div 
+              v-for="item in holidayQueryList" 
+              :key="item.dateStr"
+              class="p-3 rounded-lg border text-xs flex items-center justify-between"
+              :class="item.isHoliday ? 'border-red-200 bg-red-50/50 dark:bg-red-950/20 dark:border-red-900/40' : 'border-amber-200 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-900/40'"
+            >
+              <div>
+                <div class="font-bold flex items-center gap-2">
+                  <span class="text-sm font-mono text-slate-800 dark:text-slate-100">{{ item.dateStr }}</span>
+                  <span class="font-semibold" :class="item.isHoliday ? 'text-red-700 dark:text-red-300' : 'text-amber-700 dark:text-amber-300'">
+                    {{ item.name }}
+                  </span>
+                </div>
+                <div class="text-[11px] text-slate-500 mt-1">
+                  {{ item.isHoliday ? '法定放假 · 自动推荐设为【休息】' : '周末调休 · 自动推荐设为【工作白班】' }}
+                </div>
+              </div>
+
+              <span 
+                class="px-2 py-1 rounded font-bold text-xs"
+                :class="item.isHoliday ? 'statutory-badge-holiday' : 'statutory-badge-work'"
+              >
+                {{ item.isHoliday ? '休' : '班' }}
+              </span>
+            </div>
+          </div>
+
+          <!-- 贴心联动说明 -->
+          <div class="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 text-xs text-blue-800 dark:text-blue-300">
+            💡 <strong>自动排班联动：</strong>在顶部「开启轮班」时，选择【自动遵循国家法定放假与补班安排】，系统将在排班时自动将上述节假日设为休息、补班日设为白班，无需人工二次核对！
+          </div>
+
+        </div>
+
+        <div class="modal-footer">
+          <button @click="modals.holidayCalendar = false" class="btn btn-primary">关闭</button>
         </div>
 
       </div>
