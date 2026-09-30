@@ -1,0 +1,13 @@
+{
+  "name": "shift-calendar-sync",
+  "version": "2.0.0",
+  "description": "智巡排班 (ShiftMaster) - 智能双人协同排班与云端实时同步系统",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["shift", "roster", "calendar", "sync"],
+  "author": "Antigravity",
+  "license": "MIT"
+}

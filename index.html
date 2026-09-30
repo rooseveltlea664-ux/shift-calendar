@@ -1,0 +1,1570 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>智巡排班 - 智能双人协同排班与共同休息日日历</title>
+  <meta name="description" content="以日历为准的现代化排班记录与双人轮班管理系统，支持自定义班次、色彩标注、双人排班对比、自动识别共同休息日与每月工时天数统计。">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: '#3b82f6',
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- 引入样式表 -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app" v-cloak class="min-h-screen flex flex-col">
+
+    <!-- 顶部应用导航栏 (Header) -->
+    <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-30 transition-colors shadow-sm">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        
+        <!-- 左侧 Logo 与产品标识 -->
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-pink-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/25">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+            </svg>
+          </div>
+          <div>
+            <h1 class="text-lg font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+              智巡排班
+              <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-gradient-to-r from-blue-100 to-pink-100 text-indigo-700 dark:from-blue-900/60 dark:to-pink-900/60 dark:text-pink-300">
+                双人协同版
+              </span>
+            </h1>
+            <p class="text-xs text-slate-500 dark:text-slate-400">双人排班对比 · 共同休息日识别 · 智能轮班</p>
+          </div>
+        </div>
+
+        <!-- 中间：月份切换与控制器 -->
+        <div class="flex items-center space-x-2">
+          <button @click="prevMonth" class="btn btn-outline btn-sm !p-2" title="上个月">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+          </button>
+          
+          <div class="flex items-center gap-1.5 px-3 py-1 bg-slate-100 dark:bg-slate-700/60 rounded-lg">
+            <span class="text-base font-bold text-slate-800 dark:text-slate-100 min-w-[110px] text-center tracking-wide">
+              {{ currentMonthTitle }}
+            </span>
+          </div>
+
+          <button @click="nextMonth" class="btn btn-outline btn-sm !p-2" title="下个月">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+          </button>
+
+          <button @click="goToToday" class="btn btn-outline btn-sm font-semibold ml-1">
+            今天
+          </button>
+        </div>
+
+        <!-- 右侧：主要功能操作区 -->
+        <div class="flex items-center space-x-2">
+          
+          <!-- ☁️ 云端双人实时同步状态指示器 -->
+          <button 
+            @click="modals.cloudSync = true" 
+            class="sync-indicator border transition-all text-xs"
+            :class="syncConfig.roomId 
+              ? (syncConfig.status === 'connected' ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300' : 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300') 
+              : 'btn-outline text-slate-600 dark:text-slate-300'"
+            :title="syncConfig.roomId ? `当前房间: ${syncConfig.roomId} (点击管理同步)` : '点击开启双人云端跨设备同步'"
+          >
+            <span 
+              class="sync-dot"
+              :class="{
+                'connected': syncConfig.roomId && syncConfig.status === 'connected',
+                'syncing': syncConfig.roomId && syncConfig.status === 'syncing',
+                'offline': !syncConfig.roomId || syncConfig.status === 'offline'
+              }"
+            ></span>
+            <span v-if="syncConfig.roomId" class="font-bold flex items-center gap-1">
+              <span>房间: {{ syncConfig.roomId }}</span>
+              <span v-if="syncConfig.status === 'syncing'" class="text-[10px] font-normal animate-pulse">(同步中)</span>
+            </span>
+            <span v-else class="flex items-center gap-1 font-medium">
+              <span>☁️ 云端同步</span>
+            </span>
+          </button>
+
+          <!-- 开启轮班排班按钮 (核心亮点) -->
+          <button @click="modals.applyRotation = true" class="btn btn-primary shadow-sm text-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            <span>开启轮班</span>
+          </button>
+
+          <!-- 双人身份与称谓设置 -->
+          <button @click="modals.personSettings = true" class="btn btn-outline btn-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+            </svg>
+            <span class="hidden sm:inline">双人设置</span>
+          </button>
+
+          <!-- 班次管理 -->
+          <button @click="modals.shiftManage = true" class="btn btn-outline btn-sm hidden md:inline-flex">
+            <span>班次配置</span>
+          </button>
+
+          <!-- 轮班方案 -->
+          <button @click="modals.rotationManage = true" class="btn btn-outline btn-sm hidden md:inline-flex">
+            <span>轮班方案</span>
+          </button>
+
+          <!-- 导入导出 -->
+          <button @click="modals.exportImport = true" class="btn btn-outline btn-sm" title="导出/备份数据">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+            </svg>
+            <span class="hidden lg:inline">导入/导出</span>
+          </button>
+
+          <!-- 主题切换 -->
+          <button @click="toggleTheme" class="btn btn-outline btn-sm !p-2 rounded-full" :title="theme === 'light' ? '深色模式' : '浅色模式'">
+            <span v-if="theme === 'light'">🌙</span>
+            <span v-else>☀️</span>
+          </button>
+        </div>
+
+      </div>
+    </header>
+
+    <!-- 主体区域：左侧主日历 + 右侧月度统计面板 -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col lg:flex-row gap-6">
+
+      <!-- 左侧：核心日历视图 -->
+      <section class="flex-1 flex flex-col">
+
+        <!-- 顶部操作条：双人视图切换 + 班次图例 + 年月跳转 -->
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+          
+          <!-- 双人视图模式切换胶囊 (核心新功能) -->
+          <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-700/60 p-1 rounded-lg">
+            <button 
+              @click="setViewMode('both')"
+              class="px-2.5 py-1 text-xs font-bold rounded-md transition-all flex items-center gap-1.5"
+              :class="viewMode === 'both' ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'"
+            >
+              <span>👥 双人同看</span>
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            </button>
+
+            <button 
+              @click="setViewMode('p1')"
+              class="px-2.5 py-1 text-xs font-semibold rounded-md transition-all flex items-center gap-1"
+              :class="viewMode === 'p1' ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs font-bold' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'"
+            >
+              <span class="w-2 h-2 rounded-full" :style="{ backgroundColor: p1Info.badgeColor }"></span>
+              <span>仅看【{{ p1Info.name }}】</span>
+            </button>
+
+            <button 
+              @click="setViewMode('p2')"
+              class="px-2.5 py-1 text-xs font-semibold rounded-md transition-all flex items-center gap-1"
+              :class="viewMode === 'p2' ? 'bg-white dark:bg-slate-800 text-pink-600 dark:text-pink-400 shadow-xs font-bold' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'"
+            >
+              <span class="w-2 h-2 rounded-full" :style="{ backgroundColor: p2Info.badgeColor }"></span>
+              <span>仅看【{{ p2Info.name }}】</span>
+            </button>
+          </div>
+
+          <!-- 快捷图例提示 -->
+          <div class="flex items-center gap-2 flex-wrap text-xs">
+            <span class="text-emerald-700 dark:text-emerald-400 font-bold px-2 py-0.5 rounded bg-emerald-100/80 dark:bg-emerald-950/60 flex items-center gap-1 border border-emerald-200 dark:border-emerald-800">
+              <span>🎉</span>
+              <span>两人同休 (共 {{ monthlyStats.mutualRestCount }} 天)</span>
+            </span>
+
+            <div 
+              v-for="shift in shiftTypes" 
+              :key="shift.id"
+              @click="filterShiftId = filterShiftId === shift.id ? '' : shift.id"
+              class="flex items-center gap-1 px-2 py-0.5 rounded cursor-pointer transition-all border text-[11px]"
+              :class="filterShiftId === shift.id ? 'ring-2 ring-blue-500 font-bold' : 'hover:opacity-85'"
+              :style="{ backgroundColor: shift.color + '15', borderColor: shift.color, color: shift.color }"
+              :title="'点击过滤 ' + shift.name"
+            >
+              <span class="w-2 h-2 rounded-full" :style="{ backgroundColor: shift.color }"></span>
+              <span>{{ shift.name }}</span>
+            </div>
+
+            <button v-if="filterShiftId" @click="filterShiftId = ''" class="text-xs text-blue-600 underline">
+              清除过滤
+            </button>
+          </div>
+
+          <!-- 年月快速跳转快捷输入 -->
+          <div class="flex items-center gap-1.5 text-xs">
+            <input type="number" v-model="jumpYearInput" min="2000" max="2099" class="w-16 px-1.5 py-1 border border-slate-200 dark:border-slate-600 rounded bg-transparent dark:text-white text-center">
+            <span class="text-slate-400">年</span>
+            <input type="number" v-model="jumpMonthInput" min="1" max="12" class="w-12 px-1.5 py-1 border border-slate-200 dark:border-slate-600 rounded bg-transparent dark:text-white text-center">
+            <span class="text-slate-400">月</span>
+            <button @click="applyJump" class="btn btn-secondary btn-sm !py-1 !px-2">跳转</button>
+          </div>
+        </div>
+
+        <!-- 现代化日历网格 -->
+        <div class="calendar-container flex-1">
+          <!-- 星期标头 (周一至周日) -->
+          <div class="calendar-header-weekdays">
+            <div>周一</div>
+            <div>周二</div>
+            <div>周三</div>
+            <div>周四</div>
+            <div>周五</div>
+            <div class="weekend">周六</div>
+            <div class="weekend">周日</div>
+          </div>
+
+          <!-- 42格日历网格 -->
+          <div class="calendar-grid">
+            <div 
+              v-for="(cell, idx) in calendarDays" 
+              :key="cell.dateStr + '_' + idx"
+              class="calendar-cell"
+              :class="{
+                'other-month': !cell.isCurrentMonth,
+                'is-today': cell.isToday,
+                'weekend': cell.isWeekend,
+                'is-mutual-rest': cell.isMutualRest
+              }"
+              @click="handleCellClick(cell)"
+            >
+              <!-- 日期数字、节日与共同休息标识 -->
+              <div class="flex items-baseline justify-between">
+                <span class="cell-date-num">{{ cell.dayNumber }}</span>
+                
+                <div class="flex items-center gap-1">
+                  <!-- 传统公历节日 -->
+                  <span v-if="cell.holiday" class="text-[10px] font-medium text-red-500 truncate max-w-[45px]">
+                    {{ cell.holiday }}
+                  </span>
+                  
+                  <!-- 两人同休小星星徽章 -->
+                  <span v-if="cell.isMutualRest" class="mutual-rest-badge" title="两人共同休息日！">
+                    <span>🎉</span>
+                    <span>同休</span>
+                  </span>
+                </div>
+              </div>
+
+              <!-- 双人排班内容展示区 -->
+              <div class="flex flex-col gap-1 mt-1 flex-1 justify-center">
+
+                <!-- 1. 第一人 (如 "我") 的班次 -->
+                <div 
+                  v-if="(viewMode === 'both' || viewMode === 'p1') && cell.p1.shift"
+                  class="person-shift-pill"
+                  :style="{
+                    backgroundColor: cell.p1.shift.color,
+                    color: cell.p1.shift.textColor || '#ffffff'
+                  }"
+                  :class="{ 'opacity-25': filterShiftId && cell.p1.shift.id !== filterShiftId }"
+                >
+                  <div class="flex items-center overflow-hidden">
+                    <span class="person-label-tag" :style="{ backgroundColor: p1Info.badgeColor + 'dd' }">
+                      {{ p1Info.name }}
+                    </span>
+                    <span class="truncate">{{ cell.p1.shift.name }}</span>
+                  </div>
+                  <span class="text-[9px] opacity-80 ml-1 font-mono">{{ cell.p1.shift.hours }}h</span>
+                </div>
+
+                <!-- 2. 第二人 (如 "TA") 的班次 -->
+                <div 
+                  v-if="(viewMode === 'both' || viewMode === 'p2') && cell.p2.shift"
+                  class="person-shift-pill"
+                  :style="{
+                    backgroundColor: cell.p2.shift.color,
+                    color: cell.p2.shift.textColor || '#ffffff'
+                  }"
+                  :class="{ 'opacity-25': filterShiftId && cell.p2.shift.id !== filterShiftId }"
+                >
+                  <div class="flex items-center overflow-hidden">
+                    <span class="person-label-tag" :style="{ backgroundColor: p2Info.badgeColor + 'dd' }">
+                      {{ p2Info.name }}
+                    </span>
+                    <span class="truncate">{{ cell.p2.shift.name }}</span>
+                  </div>
+                  <span class="text-[9px] opacity-80 ml-1 font-mono">{{ cell.p2.shift.hours }}h</span>
+                </div>
+
+                <!-- 若当天没有任何排班，显示轻量加号 -->
+                <div v-if="!cell.p1.shift && !cell.p2.shift" class="empty-shift-hint !mt-1">
+                  + 点击排班
+                </div>
+
+              </div>
+
+              <!-- 备注预览条目 (若有) -->
+              <div v-if="(cell.p1.data && cell.p1.data.note) || (cell.p2.data && cell.p2.data.note)" class="cell-remark-badge !mt-1" :title="'备注说明'">
+                <span class="text-[10px]">📝</span>
+                <span class="truncate">
+                  {{ cell.p1.data?.note || cell.p2.data?.note }}
+                </span>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- 底部快捷信息 -->
+        <div class="mt-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 px-2">
+          <span>💡 提示：绿色高亮格子为<strong>双方共同休息日</strong>；点击任意日期可分别编辑两人的班次与备注。</span>
+          <span class="font-medium">双人数据自动本地安全存储</span>
+        </div>
+
+      </section>
+
+      <!-- 右侧：月度统计与看板模块 (升级：支持共同休息日汇总与双人对比) -->
+      <aside class="w-full lg:w-80 flex flex-col gap-4">
+        
+        <!-- 统计面板卡片 -->
+        <div class="stat-card">
+          
+          <!-- 统计切换标签 -->
+          <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/60 pb-3 mb-3">
+            <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-700/50 p-0.5 rounded-lg text-xs font-semibold">
+              <button 
+                @click="statsTab = 'summary'"
+                class="px-2 py-1 rounded-md transition"
+                :class="statsTab === 'summary' ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs font-bold' : 'text-slate-500'"
+              >
+                ✨ 共同休息 ({{ monthlyStats.mutualRestCount }})
+              </button>
+              
+              <button 
+                @click="statsTab = 'p1'"
+                class="px-2 py-1 rounded-md transition"
+                :class="statsTab === 'p1' ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs font-bold' : 'text-slate-500'"
+              >
+                {{ p1Info.name }}
+              </button>
+
+              <button 
+                @click="statsTab = 'p2'"
+                class="px-2 py-1 rounded-md transition"
+                :class="statsTab === 'p2' ? 'bg-white dark:bg-slate-800 text-pink-600 dark:text-pink-400 shadow-xs font-bold' : 'text-slate-500'"
+              >
+                {{ p2Info.name }}
+              </button>
+            </div>
+
+            <span class="text-xs text-slate-400 font-medium">
+              {{ currentMonth + 1 }}月
+            </span>
+          </div>
+
+          <!-- TAB 1: 共同休息日核心汇总 (用户明确要求亮点) -->
+          <div v-if="statsTab === 'summary'" class="space-y-4">
+            
+            <!-- 共同休息日大卡片 -->
+            <div class="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/30 p-4 rounded-xl border border-emerald-200 dark:border-emerald-800/60 shadow-xs">
+              <div class="flex items-center justify-between">
+                <div>
+                  <div class="text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                    <span>🎉</span>
+                    <span>本月两人共同休息日</span>
+                  </div>
+                  <div class="text-3xl font-black text-emerald-700 dark:text-emerald-300 mt-1">
+                    {{ monthlyStats.mutualRestCount }} <span class="text-sm font-medium">天</span>
+                  </div>
+                </div>
+                <div class="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/60 flex items-center justify-center text-2xl shadow-inner">
+                  🏖️
+                </div>
+              </div>
+              <p class="text-[11px] text-emerald-700/80 dark:text-emerald-400/80 mt-2">
+                适合一同出游、约会、聚餐与家庭团聚的美好时光！
+              </p>
+            </div>
+
+            <!-- 共同休息日日期清单 -->
+            <div>
+              <div class="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center justify-between">
+                <span>共同休息日期列表：</span>
+                <span class="text-[11px] text-slate-400 font-normal">点击日期可查看</span>
+              </div>
+
+              <div v-if="monthlyStats.mutualRestList.length > 0" class="grid grid-cols-2 gap-2">
+                <div 
+                  v-for="mDay in monthlyStats.mutualRestList" 
+                  :key="mDay.dateStr"
+                  class="p-2 rounded-lg bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40 text-xs flex items-center justify-between cursor-pointer hover:bg-emerald-100 transition"
+                  @click="handleCellClick({ dateStr: mDay.dateStr })"
+                >
+                  <span class="font-bold text-emerald-900 dark:text-emerald-200">
+                    {{ mDay.dayNumber }}日 ({{ mDay.weekday }})
+                  </span>
+                  <span v-if="mDay.isWeekend" class="text-[10px] px-1 py-0.2 bg-red-100 text-red-600 rounded font-semibold">
+                    周末
+                  </span>
+                  <span v-else class="text-[10px] text-emerald-600">工作日</span>
+                </div>
+              </div>
+
+              <div v-else class="text-xs text-slate-400 p-4 text-center border border-dashed rounded-lg">
+                本月暂未检测到双方同一天休息的日期<br>可使用顶部「开启轮班」进行班次调整匹配
+              </div>
+            </div>
+
+            <!-- 双方月度总览对比 -->
+            <div class="pt-3 border-t border-slate-100 dark:border-slate-700/60">
+              <div class="text-xs font-bold text-slate-500 mb-2">双方出勤负荷对比</div>
+              <div class="grid grid-cols-2 gap-3 text-xs">
+                
+                <div class="p-2.5 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40">
+                  <div class="font-bold text-blue-800 dark:text-blue-300 mb-1 flex items-center gap-1">
+                    <span class="w-2 h-2 rounded-full" :style="{ backgroundColor: p1Info.badgeColor }"></span>
+                    <span>{{ p1Info.name }}</span>
+                  </div>
+                  <div>出勤: <strong class="text-blue-700 dark:text-blue-300">{{ monthlyStats.p1.workDays }}</strong> 天</div>
+                  <div>工时: <strong>{{ monthlyStats.p1.totalWorkHours }}</strong> 小时</div>
+                  <div>休息: <strong>{{ monthlyStats.p1.restDays }}</strong> 天</div>
+                </div>
+
+                <div class="p-2.5 rounded-lg bg-pink-50 dark:bg-pink-950/30 border border-pink-100 dark:border-pink-900/40">
+                  <div class="font-bold text-pink-800 dark:text-pink-300 mb-1 flex items-center gap-1">
+                    <span class="w-2 h-2 rounded-full" :style="{ backgroundColor: p2Info.badgeColor }"></span>
+                    <span>{{ p2Info.name }}</span>
+                  </div>
+                  <div>出勤: <strong class="text-pink-700 dark:text-pink-300">{{ monthlyStats.p2.workDays }}</strong> 天</div>
+                  <div>工时: <strong>{{ monthlyStats.p2.totalWorkHours }}</strong> 小时</div>
+                  <div>休息: <strong>{{ monthlyStats.p2.restDays }}</strong> 天</div>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+
+          <!-- TAB 2: 第一人出勤统计 -->
+          <div v-else-if="statsTab === 'p1'" class="space-y-3">
+            <div class="text-xs font-bold text-blue-700 dark:text-blue-300 flex items-center justify-between">
+              <span>【{{ p1Info.name }}】各班次出勤天数</span>
+              <span>出勤 {{ monthlyStats.p1.workDays }} 天 / 休息 {{ monthlyStats.p1.restDays }} 天</span>
+            </div>
+
+            <div class="space-y-2.5">
+              <div 
+                v-for="item in monthlyStats.p1.list" 
+                :key="item.shift.id"
+                class="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-700/40 border border-slate-100 dark:border-slate-700"
+              >
+                <div class="flex items-center justify-between text-xs mb-1">
+                  <div class="flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full" :style="{ backgroundColor: item.shift.color }"></span>
+                    <span class="font-bold text-slate-800 dark:text-slate-200">{{ item.shift.name }}</span>
+                  </div>
+                  <div class="font-semibold text-slate-700 dark:text-slate-200">
+                    <span class="text-sm font-bold text-blue-600 dark:text-blue-400">{{ item.count }}</span> 天 
+                    <span class="text-[11px] text-slate-400 ml-1">({{ item.totalHours }}h)</span>
+                  </div>
+                </div>
+
+                <div class="progress-bar-track">
+                  <div class="progress-bar-fill" :style="{ width: item.percentage + '%', backgroundColor: item.shift.color }"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 3: 第二人出勤统计 -->
+          <div v-else-if="statsTab === 'p2'" class="space-y-3">
+            <div class="text-xs font-bold text-pink-700 dark:text-pink-300 flex items-center justify-between">
+              <span>【{{ p2Info.name }}】各班次出勤天数</span>
+              <span>出勤 {{ monthlyStats.p2.workDays }} 天 / 休息 {{ monthlyStats.p2.restDays }} 天</span>
+            </div>
+
+            <div class="space-y-2.5">
+              <div 
+                v-for="item in monthlyStats.p2.list" 
+                :key="item.shift.id"
+                class="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-700/40 border border-slate-100 dark:border-slate-700"
+              >
+                <div class="flex items-center justify-between text-xs mb-1">
+                  <div class="flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full" :style="{ backgroundColor: item.shift.color }"></span>
+                    <span class="font-bold text-slate-800 dark:text-slate-200">{{ item.shift.name }}</span>
+                  </div>
+                  <div class="font-semibold text-slate-700 dark:text-slate-200">
+                    <span class="text-sm font-bold text-pink-600 dark:text-pink-400">{{ item.count }}</span> 天 
+                    <span class="text-[11px] text-slate-400 ml-1">({{ item.totalHours }}h)</span>
+                  </div>
+                </div>
+
+                <div class="progress-bar-track">
+                  <div class="progress-bar-fill" :style="{ width: item.percentage + '%', backgroundColor: item.shift.color }"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 导出当月报表快捷按钮 -->
+          <div class="mt-5 pt-4 border-t border-slate-100 dark:border-slate-700/60 flex gap-2">
+            <button @click="exportCSV" class="btn btn-outline btn-sm flex-1 text-xs">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+              导出双人报表
+            </button>
+            <button @click="printPage" class="btn btn-outline btn-sm !px-3 text-xs" title="打印排班表">
+              🖨️
+            </button>
+          </div>
+
+        </div>
+
+      </aside>
+
+    </main>
+
+    <!-- ========================================================= -->
+    <!-- 模态框 1：单日双人排班与备注编辑 (核心要求) -->
+    <!-- ========================================================= -->
+    <div v-if="modals.dayEdit" class="modal-overlay" @click.self="modals.dayEdit = false">
+      <div class="modal-card !max-w-2xl">
+        
+        <div class="modal-header">
+          <div>
+            <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <span>📅 编辑单日排班与备注</span>
+              <span class="text-xs px-2.5 py-0.5 bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 rounded font-semibold">
+                {{ activeDayForm.dateStr }}
+              </span>
+            </h3>
+            <p class="text-xs text-slate-500 mt-0.5">可分别修改两人的班次、备注说明，系统将自动核算是否为共同休息日</p>
+          </div>
+          <button @click="modals.dayEdit = false" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+        </div>
+
+        <div class="modal-body space-y-4">
+          
+          <!-- 两人状态核对指示条 -->
+          <div class="p-3 rounded-lg border flex items-center justify-between text-xs"
+            :class="isRest(shiftMap[activeDayForm.p1.shiftId]) && isRest(shiftMap[activeDayForm.p2.shiftId]) 
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300' 
+              : 'bg-slate-50 border-slate-200 text-slate-700 dark:bg-slate-700/30 dark:border-slate-700 dark:text-slate-300'"
+          >
+            <div class="flex items-center gap-3">
+              <span class="font-bold flex items-center gap-1">
+                <span class="w-2 h-2 rounded-full" :style="{ backgroundColor: p1Info.badgeColor }"></span>
+                {{ p1Info.name }}: {{ shiftMap[activeDayForm.p1.shiftId]?.name || '未排' }}
+              </span>
+              <span class="text-slate-300">|</span>
+              <span class="font-bold flex items-center gap-1">
+                <span class="w-2 h-2 rounded-full" :style="{ backgroundColor: p2Info.badgeColor }"></span>
+                {{ p2Info.name }}: {{ shiftMap[activeDayForm.p2.shiftId]?.name || '未排' }}
+              </span>
+            </div>
+
+            <div v-if="isRest(shiftMap[activeDayForm.p1.shiftId]) && isRest(shiftMap[activeDayForm.p2.shiftId])" class="font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+              <span>🎉 共同休息日！</span>
+            </div>
+            <div v-else class="text-slate-400 text-[11px]">
+              今日非同休
+            </div>
+          </div>
+
+          <!-- 双人编辑标签切换 -->
+          <div class="flex border-b border-slate-200 dark:border-slate-700">
+            <button 
+              @click="activePersonTab = 'p1'"
+              class="pb-2.5 px-4 text-sm font-bold border-b-2 transition flex items-center gap-2"
+              :class="activePersonTab === 'p1' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-800'"
+            >
+              <span class="w-2.5 h-2.5 rounded-full" :style="{ backgroundColor: p1Info.badgeColor }"></span>
+              <span>编辑【{{ p1Info.name }}】的排班</span>
+            </button>
+
+            <button 
+              @click="activePersonTab = 'p2'"
+              class="pb-2.5 px-4 text-sm font-bold border-b-2 transition flex items-center gap-2"
+              :class="activePersonTab === 'p2' ? 'border-pink-500 text-pink-600 dark:text-pink-400' : 'border-transparent text-slate-500 hover:text-slate-800'"
+            >
+              <span class="w-2.5 h-2.5 rounded-full" :style="{ backgroundColor: p2Info.badgeColor }"></span>
+              <span>编辑【{{ p2Info.name }}】的排班</span>
+            </button>
+          </div>
+
+          <!-- 当前选中人员的班次与备注编辑区域 -->
+          <div v-if="activePersonTab === 'p1'" class="space-y-4">
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="form-label !mb-0">选择【{{ p1Info.name }}】该日班次：</label>
+                <!-- 快速同步按钮 -->
+                <button 
+                  v-if="activeDayForm.p2.shiftId"
+                  @click="selectDayShift('p1', activeDayForm.p2.shiftId)"
+                  type="button" 
+                  class="text-xs text-blue-600 hover:underline"
+                >
+                  ⚡ 同步{{ p2Info.name }}的班次 ({{ shiftMap[activeDayForm.p2.shiftId]?.name }})
+                </button>
+              </div>
+
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                <div 
+                  v-for="shift in shiftTypes" 
+                  :key="shift.id"
+                  @click="selectDayShift('p1', shift.id)"
+                  class="p-2.5 rounded-lg border-2 cursor-pointer transition-all flex flex-col justify-between"
+                  :class="activeDayForm.p1.shiftId === shift.id ? 'border-blue-500 shadow-md ring-2 ring-blue-500/20' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'"
+                  :style="activeDayForm.p1.shiftId === shift.id ? { backgroundColor: shift.color + '15' } : {}"
+                >
+                  <div class="flex items-center justify-between">
+                    <span class="font-bold text-sm text-slate-800 dark:text-slate-100">{{ shift.name }}</span>
+                    <span class="w-2.5 h-2.5 rounded-full" :style="{ backgroundColor: shift.color }"></span>
+                  </div>
+                  <div class="text-xs text-slate-500 mt-1">{{ shift.startTime }} - {{ shift.endTime }}</div>
+                </div>
+
+                <div 
+                  @click="clearDayShift('p1')"
+                  class="p-2.5 rounded-lg border-2 border-dashed cursor-pointer flex flex-col justify-center items-center text-center"
+                  :class="!activeDayForm.p1.shiftId ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/30' : 'border-slate-200 dark:border-slate-700'"
+                >
+                  <span class="text-xs font-semibold text-amber-600">🚫 未排班 / 清除</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 备注与工时 -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div class="sm:col-span-2">
+                <label class="form-label">【{{ p1Info.name }}】排班备注：</label>
+                <textarea v-model="activeDayForm.p1.note" rows="2" class="form-textarea" placeholder="填写调班、请假、巡检等说明..."></textarea>
+                <div class="flex items-center gap-1.5 flex-wrap mt-1.5">
+                  <span class="text-[11px] text-slate-400">快捷：</span>
+                  <button 
+                    v-for="qTag in quickNotes.slice(0, 4)" 
+                    :key="qTag"
+                    type="button"
+                    @click="insertQuickNote('p1', qTag)"
+                    class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
+                  >
+                    +{{ qTag }}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label class="form-label">计薪工时(h)：</label>
+                <input type="number" step="0.5" v-model="activeDayForm.p1.hours" class="form-input text-center font-bold">
+              </div>
+            </div>
+          </div>
+
+          <!-- 第二人编辑区域 -->
+          <div v-if="activePersonTab === 'p2'" class="space-y-4">
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="form-label !mb-0">选择【{{ p2Info.name }}】该日班次：</label>
+                <!-- 快速同步按钮 -->
+                <button 
+                  v-if="activeDayForm.p1.shiftId"
+                  @click="selectDayShift('p2', activeDayForm.p1.shiftId)"
+                  type="button" 
+                  class="text-xs text-pink-600 hover:underline"
+                >
+                  ⚡ 同步{{ p1Info.name }}的班次 ({{ shiftMap[activeDayForm.p1.shiftId]?.name }})
+                </button>
+              </div>
+
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                <div 
+                  v-for="shift in shiftTypes" 
+                  :key="shift.id"
+                  @click="selectDayShift('p2', shift.id)"
+                  class="p-2.5 rounded-lg border-2 cursor-pointer transition-all flex flex-col justify-between"
+                  :class="activeDayForm.p2.shiftId === shift.id ? 'border-pink-500 shadow-md ring-2 ring-pink-500/20' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'"
+                  :style="activeDayForm.p2.shiftId === shift.id ? { backgroundColor: shift.color + '15' } : {}"
+                >
+                  <div class="flex items-center justify-between">
+                    <span class="font-bold text-sm text-slate-800 dark:text-slate-100">{{ shift.name }}</span>
+                    <span class="w-2.5 h-2.5 rounded-full" :style="{ backgroundColor: shift.color }"></span>
+                  </div>
+                  <div class="text-xs text-slate-500 mt-1">{{ shift.startTime }} - {{ shift.endTime }}</div>
+                </div>
+
+                <div 
+                  @click="clearDayShift('p2')"
+                  class="p-2.5 rounded-lg border-2 border-dashed cursor-pointer flex flex-col justify-center items-center text-center"
+                  :class="!activeDayForm.p2.shiftId ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/30' : 'border-slate-200 dark:border-slate-700'"
+                >
+                  <span class="text-xs font-semibold text-amber-600">🚫 未排班 / 清除</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 备注与工时 -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div class="sm:col-span-2">
+                <label class="form-label">【{{ p2Info.name }}】排班备注：</label>
+                <textarea v-model="activeDayForm.p2.note" rows="2" class="form-textarea" placeholder="填写调班、请假、巡检等说明..."></textarea>
+                <div class="flex items-center gap-1.5 flex-wrap mt-1.5">
+                  <span class="text-[11px] text-slate-400">快捷：</span>
+                  <button 
+                    v-for="qTag in quickNotes.slice(0, 4)" 
+                    :key="qTag"
+                    type="button"
+                    @click="insertQuickNote('p2', qTag)"
+                    class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
+                  >
+                    +{{ qTag }}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label class="form-label">计薪工时(h)：</label>
+                <input type="number" step="0.5" v-model="activeDayForm.p2.hours" class="form-input text-center font-bold">
+              </div>
+            </div>
+          </div>
+
+          <!-- 快捷从本日开启轮班 -->
+          <div class="bg-blue-50/70 dark:bg-blue-950/30 p-3 rounded-lg border border-blue-100 dark:border-blue-900/40 flex items-center justify-between">
+            <div class="text-xs text-blue-800 dark:text-blue-300">
+              想要从 <span class="font-bold underline">{{ activeDayForm.dateStr }}</span> 开始按规律自动排班？
+            </div>
+            <button @click="openRotationFromActiveDay" class="btn btn-outline btn-sm text-xs !bg-white dark:!bg-slate-800 text-blue-600">
+              从本日开启轮班 →
+            </button>
+          </div>
+
+        </div>
+
+        <div class="modal-footer">
+          <button @click="modals.dayEdit = false" class="btn btn-secondary">取消</button>
+          <button @click="saveDayEdit" class="btn btn-primary">保存双人排班修改</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- 模态框 2：开启自动轮班排班 (支持双人协同排班) -->
+    <!-- ========================================================= -->
+    <div v-if="modals.applyRotation" class="modal-overlay" @click.self="modals.applyRotation = false">
+      <div class="modal-card !max-w-2xl">
+        
+        <div class="modal-header">
+          <div>
+            <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <span>🔄 开启自动轮班排班</span>
+              <span class="text-xs px-2 py-0.5 bg-green-100 dark:bg-green-900/60 text-green-700 dark:text-green-300 rounded font-normal">
+                双人分别/统一排班
+              </span>
+            </h3>
+            <p class="text-xs text-slate-500 mt-0.5">选择排班对象、起始日期与轮班方案，系统将自动向后计算并填充排班</p>
+          </div>
+          <button @click="modals.applyRotation = false" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+        </div>
+
+        <div class="modal-body space-y-4">
+          
+          <!-- 排班目标人员选择 -->
+          <div class="form-group bg-slate-50 dark:bg-slate-700/30 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
+            <label class="form-label !mb-2">为谁执行自动排班：</label>
+            <div class="flex items-center gap-6">
+              <label class="flex items-center gap-2 cursor-pointer text-sm font-semibold">
+                <input type="radio" value="both" v-model="applyRotationForm.targetPerson">
+                <span class="text-indigo-600 dark:text-indigo-400">👥 同时为两人分别排班 (推荐)</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer text-sm">
+                <input type="radio" value="p1" v-model="applyRotationForm.targetPerson">
+                <span>仅为【{{ p1Info.name }}】排班</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer text-sm">
+                <input type="radio" value="p2" v-model="applyRotationForm.targetPerson">
+                <span>仅为【{{ p2Info.name }}】排班</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- 起始日期与排班时长 -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            
+            <div class="form-group">
+              <label class="form-label">排班起始基准日期：</label>
+              <input type="date" v-model="applyRotationForm.startDate" class="form-input font-medium">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">排班持续时长：</label>
+              <div class="flex gap-2">
+                <select v-model="applyRotationForm.rangeType" class="form-select !w-32">
+                  <option value="months">按月数</option>
+                  <option value="days">按天数</option>
+                  <option value="until">指定截止</option>
+                </select>
+
+                <input 
+                  v-if="applyRotationForm.rangeType === 'months'" 
+                  type="number" min="1" max="24" 
+                  v-model.number="applyRotationForm.durationValue" 
+                  class="form-input flex-1"
+                >
+                <input 
+                  v-else-if="applyRotationForm.rangeType === 'days'" 
+                  type="number" min="1" max="730" 
+                  v-model.number="applyRotationForm.durationValue" 
+                  class="form-input flex-1"
+                >
+                <input 
+                  v-else 
+                  type="date" 
+                  v-model="applyRotationForm.customEndDate" 
+                  class="form-input flex-1"
+                >
+              </div>
+            </div>
+
+          </div>
+
+          <!-- 轮班方案配置区 (根据选择对象动态展示) -->
+          <div class="space-y-3">
+            
+            <!-- P1 方案配置 -->
+            <div 
+              v-if="applyRotationForm.targetPerson === 'both' || applyRotationForm.targetPerson === 'p1'"
+              class="p-3 rounded-lg border border-blue-200 dark:border-blue-900/60 bg-blue-50/30 dark:bg-blue-950/20"
+            >
+              <div class="font-bold text-xs text-blue-800 dark:text-blue-300 mb-2 flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full" :style="{ backgroundColor: p1Info.badgeColor }"></span>
+                <span>【{{ p1Info.name }}】的轮班方案与起始天：</span>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <select v-model="applyRotationForm.p1PlanId" class="form-select font-medium text-xs">
+                  <option v-for="rot in rotations" :key="rot.id" :value="rot.id">
+                    {{ rot.name }} ({{ rot.shiftIds.length }}天)
+                  </option>
+                </select>
+
+                <select 
+                  v-if="rotationMap[applyRotationForm.p1PlanId]" 
+                  v-model.number="applyRotationForm.p1Offset" 
+                  class="form-select text-xs"
+                >
+                  <option 
+                    v-for="(shiftId, idx) in rotationMap[applyRotationForm.p1PlanId].shiftIds" 
+                    :key="idx" :value="idx"
+                  >
+                    从第 {{ idx + 1 }} 天 ({{ shiftMap[shiftId]?.name }}) 开始
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            <!-- P2 方案配置 -->
+            <div 
+              v-if="applyRotationForm.targetPerson === 'both' || applyRotationForm.targetPerson === 'p2'"
+              class="p-3 rounded-lg border border-pink-200 dark:border-pink-900/60 bg-pink-50/30 dark:bg-pink-950/20"
+            >
+              <div class="font-bold text-xs text-pink-800 dark:text-pink-300 mb-2 flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full" :style="{ backgroundColor: p2Info.badgeColor }"></span>
+                <span>【{{ p2Info.name }}】的轮班方案与起始天：</span>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <select v-model="applyRotationForm.p2PlanId" class="form-select font-medium text-xs">
+                  <option v-for="rot in rotations" :key="rot.id" :value="rot.id">
+                    {{ rot.name }} ({{ rot.shiftIds.length }}天)
+                  </option>
+                </select>
+
+                <select 
+                  v-if="rotationMap[applyRotationForm.p2PlanId]" 
+                  v-model.number="applyRotationForm.p2Offset" 
+                  class="form-select text-xs"
+                >
+                  <option 
+                    v-for="(shiftId, idx) in rotationMap[applyRotationForm.p2PlanId].shiftIds" 
+                    :key="idx" :value="idx"
+                  >
+                    从第 {{ idx + 1 }} 天 ({{ shiftMap[shiftId]?.name }}) 开始
+                  </option>
+                </select>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- 实时双人排班预览对比 -->
+          <div>
+            <label class="form-label flex items-center justify-between">
+              <span>未来 14 天排班对比与共同休息日实时预览：</span>
+              <span class="text-[11px] text-emerald-600 font-bold">✨ 带星标代表共同休息日</span>
+            </label>
+            
+            <div class="overflow-x-auto pb-2">
+              <div class="flex gap-2 min-w-max">
+                <div 
+                  v-for="(pItem, pIdx) in applyRotationPreview" 
+                  :key="pIdx"
+                  class="flex flex-col items-center p-2 rounded-lg border text-center w-20 shadow-xs"
+                  :class="pItem.isMutualRest ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700' : 'border-slate-200 dark:border-slate-700'"
+                >
+                  <span class="text-[10px] text-slate-400">{{ pItem.dateStr.substring(5) }}</span>
+                  <span class="text-[10px] font-semibold text-slate-600 dark:text-slate-300">周{{ pItem.dayOfWeek }}</span>
+                  
+                  <div class="w-full space-y-1 mt-1">
+                    <span 
+                      class="px-1 py-0.5 rounded text-[10px] font-bold block truncate"
+                      :style="{ backgroundColor: pItem.p1Shift.color, color: pItem.p1Shift.textColor || '#fff' }"
+                    >
+                      {{ p1Info.name }}: {{ pItem.p1Shift.code }}
+                    </span>
+                    <span 
+                      class="px-1 py-0.5 rounded text-[10px] font-bold block truncate"
+                      :style="{ backgroundColor: pItem.p2Shift.color, color: pItem.p2Shift.textColor || '#fff' }"
+                    >
+                      {{ p2Info.name }}: {{ pItem.p2Shift.code }}
+                    </span>
+                  </div>
+
+                  <span v-if="pItem.isMutualRest" class="text-[9px] font-black text-emerald-600 mt-1">
+                    ★同休★
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="modal-footer justify-between">
+          <button @click="clearRotationRange" class="btn btn-outline text-red-600 border-red-200 hover:bg-red-50 text-xs">
+            清空该范围排班
+          </button>
+
+          <div class="flex gap-2">
+            <button @click="modals.applyRotation = false" class="btn btn-secondary">取消</button>
+            <button @click="executeApplyRotation" class="btn btn-primary">
+              ✓ 确认开启自动排班
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- 模态框 6：双人称呼与身份设置 (新功能) -->
+    <!-- ========================================================= -->
+    <div v-if="modals.personSettings" class="modal-overlay" @click.self="modals.personSettings = false">
+      <div class="modal-card !max-w-md">
+        
+        <div class="modal-header">
+          <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <span>👥 双人称谓与标识设置</span>
+          </h3>
+          <button @click="modals.personSettings = false" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+        </div>
+
+        <div class="modal-body space-y-4">
+          <p class="text-xs text-slate-500">
+            自定义排班中两个人的姓名或昵称（如“我与老婆”、“小明与小红”、“搭档A与搭档B”），日历上将展示个性化标识。
+          </p>
+
+          <!-- 第一个人设置 -->
+          <div class="p-3 rounded-lg border border-blue-200 dark:border-blue-900 bg-blue-50/30 dark:bg-blue-950/20 space-y-3">
+            <div class="text-xs font-bold text-blue-700 dark:text-blue-300">人员一 (默认本人)</div>
+            <div class="grid grid-cols-3 gap-2">
+              <div class="col-span-2">
+                <label class="text-[11px] text-slate-500 block mb-1">姓名 / 称呼：</label>
+                <input type="text" v-model="personForm.p1Name" maxlength="6" class="form-input text-xs font-bold" placeholder="如：我、小明、爸爸">
+              </div>
+              <div>
+                <label class="text-[11px] text-slate-500 block mb-1">标识颜色：</label>
+                <input type="color" v-model="personForm.p1BadgeColor" class="w-full h-9 rounded border cursor-pointer">
+              </div>
+            </div>
+          </div>
+
+          <!-- 第二个人设置 -->
+          <div class="p-3 rounded-lg border border-pink-200 dark:border-pink-900 bg-pink-50/30 dark:bg-pink-950/20 space-y-3">
+            <div class="text-xs font-bold text-pink-700 dark:text-pink-300">人员二 (伴侣 / 搭档)</div>
+            <div class="grid grid-cols-3 gap-2">
+              <div class="col-span-2">
+                <label class="text-[11px] text-slate-500 block mb-1">姓名 / 称呼：</label>
+                <input type="text" v-model="personForm.p2Name" maxlength="6" class="form-input text-xs font-bold" placeholder="如：TA、小红、妈妈">
+              </div>
+              <div>
+                <label class="text-[11px] text-slate-500 block mb-1">标识颜色：</label>
+                <input type="color" v-model="personForm.p2BadgeColor" class="w-full h-9 rounded border cursor-pointer">
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="modal-footer">
+          <button @click="modals.personSettings = false" class="btn btn-secondary">取消</button>
+          <button @click="savePersonSettings" class="btn btn-primary">保存设置</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- 模态框 3：班次管理 (自定义班次与颜色编辑) -->
+    <!-- ========================================================= -->
+    <div v-if="modals.shiftManage" class="modal-overlay" @click.self="modals.shiftManage = false">
+      <div class="modal-card !max-w-2xl">
+        
+        <div class="modal-header">
+          <div>
+            <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <span>🎨 自定义班次配置</span>
+              <span class="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 rounded font-normal">
+                共 {{ shiftTypes.length }} 个班次
+              </span>
+            </h3>
+            <p class="text-xs text-slate-500 mt-0.5">自由添加、编辑班次名称、简称标识、上下班时间与个性化颜色标注</p>
+          </div>
+          <button @click="modals.shiftManage = false" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+        </div>
+
+        <div class="modal-body space-y-3">
+          
+          <div class="space-y-2.5">
+            <div 
+              v-for="shift in shiftTypes" 
+              :key="shift.id"
+              class="flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800"
+            >
+              <div class="flex items-center gap-3">
+                <div 
+                  class="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm shadow-xs"
+                  :style="{ backgroundColor: shift.color, color: shift.textColor || '#fff' }"
+                >
+                  {{ shift.code }}
+                </div>
+                <div>
+                  <div class="font-bold text-sm text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                    {{ shift.name }}
+                    <span class="text-xs font-normal text-slate-400">({{ shift.hours }}小时)</span>
+                  </div>
+                  <div class="text-xs text-slate-500">
+                    时间段：{{ shift.startTime }} ~ {{ shift.endTime }} · {{ shift.desc || '正常排班' }}
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <button @click="openEditShift(shift)" class="btn btn-outline btn-sm">编辑</button>
+                <button @click="deleteShift(shift.id)" class="btn btn-outline btn-sm text-red-500 hover:bg-red-50">删除</button>
+              </div>
+            </div>
+          </div>
+
+          <button @click="openAddShift" class="btn btn-outline w-full border-dashed !py-2.5 text-blue-600 dark:text-blue-400">
+            + 添加新班次类型
+          </button>
+
+        </div>
+
+        <div class="modal-footer">
+          <button @click="modals.shiftManage = false" class="btn btn-primary">完成</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 模态框 3-1：班次编辑表单子弹窗 -->
+    <div v-if="modals.shiftForm" class="modal-overlay" style="z-index: 1100;" @click.self="modals.shiftForm = false">
+      <div class="modal-card !max-w-lg">
+        
+        <div class="modal-header">
+          <h3 class="text-base font-bold text-slate-900 dark:text-white">
+            {{ isEditingShift ? '编辑班次' : '新建班次' }}
+          </h3>
+          <button @click="modals.shiftForm = false" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+        </div>
+
+        <div class="modal-body space-y-4">
+          <div class="grid grid-cols-2 gap-3">
+            <div class="form-group">
+              <label class="form-label">班次名称：</label>
+              <input type="text" v-model="shiftFormData.name" class="form-input" placeholder="如：早班、大夜班">
+            </div>
+            <div class="form-group">
+              <label class="form-label">日历简称标识：</label>
+              <input type="text" v-model="shiftFormData.code" maxlength="3" class="form-input" placeholder="如：早、夜、休">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-3">
+            <div class="form-group">
+              <label class="form-label">上班时间：</label>
+              <input type="time" v-model="shiftFormData.startTime" class="form-input">
+            </div>
+            <div class="form-group">
+              <label class="form-label">下班时间：</label>
+              <input type="time" v-model="shiftFormData.endTime" class="form-input">
+            </div>
+            <div class="form-group">
+              <label class="form-label">计薪工时(h)：</label>
+              <input type="number" step="0.5" v-model.number="shiftFormData.hours" class="form-input">
+            </div>
+          </div>
+
+          <!-- 班次颜色选择 -->
+          <div class="form-group">
+            <label class="form-label">班次标注颜色：</label>
+            
+            <div class="flex items-center gap-3">
+              <input type="color" v-model="shiftFormData.color" class="w-10 h-10 rounded border border-slate-300 cursor-pointer">
+              <span class="text-xs font-mono bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">{{ shiftFormData.color }}</span>
+            </div>
+
+            <!-- 推荐调色盘 -->
+            <div class="color-picker-palette">
+              <div 
+                v-for="c in paletteColors" 
+                :key="c" 
+                class="color-dot"
+                :class="{ 'active': shiftFormData.color.toLowerCase() === c.toLowerCase() }"
+                :style="{ backgroundColor: c }"
+                @click="shiftFormData.color = c"
+              ></div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">文字颜色：</label>
+            <div class="flex gap-4">
+              <label class="flex items-center gap-2 cursor-pointer text-sm">
+                <input type="radio" value="#ffffff" v-model="shiftFormData.textColor">
+                <span>白色文字 (深色背景推荐)</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer text-sm">
+                <input type="radio" value="#0f172a" v-model="shiftFormData.textColor">
+                <span>深色文字 (浅色背景推荐)</span>
+              </label>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="modal-footer">
+          <button @click="modals.shiftForm = false" class="btn btn-secondary">取消</button>
+          <button @click="saveShiftForm" class="btn btn-primary">保存班次</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- 模态框 4：轮班方案管理 -->
+    <!-- ========================================================= -->
+    <div v-if="modals.rotationManage" class="modal-overlay" @click.self="modals.rotationManage = false">
+      <div class="modal-card !max-w-2xl">
+        
+        <div class="modal-header">
+          <div>
+            <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <span>🔀 轮班周期方案管理</span>
+              <span class="text-xs px-2 py-0.5 bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 rounded font-normal">
+                共 {{ rotations.length }} 个组合方案
+              </span>
+            </h3>
+            <p class="text-xs text-slate-500 mt-0.5">拼接组合不同班次循环周期（例如两早两中两夜两休、做一休一等）</p>
+          </div>
+          <button @click="modals.rotationManage = false" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+        </div>
+
+        <div class="modal-body space-y-3">
+          
+          <div class="space-y-3">
+            <div 
+              v-for="rot in rotations" 
+              :key="rot.id"
+              class="p-3.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800"
+            >
+              <div class="flex items-center justify-between mb-2">
+                <div>
+                  <h4 class="font-bold text-sm text-slate-800 dark:text-slate-100">{{ rot.name }}</h4>
+                  <p class="text-xs text-slate-500">{{ rot.desc || '自定义轮转' }} · 周期总长 {{ rot.shiftIds.length }} 天</p>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button @click="openEditRotation(rot)" class="btn btn-outline btn-sm">编辑组合</button>
+                  <button @click="deleteRotation(rot.id)" class="btn btn-outline btn-sm text-red-500 hover:bg-red-50">删除</button>
+                </div>
+              </div>
+
+              <!-- 序列图示 -->
+              <div class="flex flex-wrap gap-1.5 items-center">
+                <template v-for="(sId, sIdx) in rot.shiftIds" :key="sIdx">
+                  <div 
+                    class="sequence-chip !py-1 !px-2 text-xs"
+                    :style="{
+                      backgroundColor: shiftMap[sId] ? shiftMap[sId].color : '#64748b',
+                      color: '#ffffff'
+                    }"
+                  >
+                    <span class="sequence-step-num">{{ sIdx + 1 }}</span>
+                    <span>{{ shiftMap[sId] ? shiftMap[sId].name : '未知' }}</span>
+                  </div>
+                  <span v-if="sIdx < rot.shiftIds.length - 1" class="text-slate-400 text-xs font-bold">→</span>
+                </template>
+              </div>
+
+            </div>
+          </div>
+
+          <button @click="openAddRotation" class="btn btn-outline w-full border-dashed !py-2.5 text-blue-600 dark:text-blue-400">
+            + 自由新建轮班组合方案
+          </button>
+
+        </div>
+
+        <div class="modal-footer">
+          <button @click="modals.rotationManage = false" class="btn btn-primary">完成</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 模态框 4-1：轮班方案编辑表单 -->
+    <div v-if="modals.rotationForm" class="modal-overlay" style="z-index: 1100;" @click.self="modals.rotationForm = false">
+      <div class="modal-card !max-w-xl">
+        
+        <div class="modal-header">
+          <h3 class="text-base font-bold text-slate-900 dark:text-white">
+            {{ isEditingRotation ? '编辑轮班方案' : '自由组合新轮班方案' }}
+          </h3>
+          <button @click="modals.rotationForm = false" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+        </div>
+
+        <div class="modal-body space-y-4">
+          <div class="form-group">
+            <label class="form-label">方案名称：</label>
+            <input type="text" v-model="rotationFormData.name" class="form-input" placeholder="例如：四班三倒、两早两晚两休、做二休二">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">方案描述：</label>
+            <input type="text" v-model="rotationFormData.desc" class="form-input" placeholder="例如：早班2天、中班2天、晚班2天、轮休2天">
+          </div>
+
+          <!-- 拼接班次序列 -->
+          <div class="form-group">
+            <div class="flex items-center justify-between mb-2">
+              <label class="form-label !mb-0">
+                当前周期轮换序列 (共 {{ rotationFormData.shiftIds.length }} 天)：
+              </label>
+              <span class="text-xs text-slate-400">点击下方班次添加</span>
+            </div>
+
+            <div class="rotation-sequence-list">
+              <div 
+                v-for="(sId, sIdx) in rotationFormData.shiftIds" 
+                :key="sIdx"
+                class="sequence-chip"
+                :style="{
+                  backgroundColor: shiftMap[sId] ? shiftMap[sId].color : '#64748b',
+                  color: '#ffffff'
+                }"
+              >
+                <span class="sequence-step-num">第{{ sIdx + 1 }}天</span>
+                <span>{{ shiftMap[sId] ? shiftMap[sId].name : '未知' }}</span>
+
+                <button v-if="sIdx > 0" @click="moveShiftInRotation(sIdx, -1)" class="opacity-70 hover:opacity-100 text-xs ml-1">◀</button>
+                <button v-if="sIdx < rotationFormData.shiftIds.length - 1" @click="moveShiftInRotation(sIdx, 1)" class="opacity-70 hover:opacity-100 text-xs">▶</button>
+                <button @click="removeShiftFromRotation(sIdx)" class="opacity-70 hover:opacity-100 text-xs ml-0.5 hover:text-red-200">✕</button>
+              </div>
+
+              <div v-if="rotationFormData.shiftIds.length === 0" class="text-xs text-slate-400 p-2">
+                当前序列为空，请点击下方班次添加到周期中
+              </div>
+            </div>
+
+          </div>
+
+          <!-- 点击添加班次进序列 -->
+          <div>
+            <label class="text-xs font-semibold text-slate-600 dark:text-slate-300 block mb-1.5">
+              点击下方班次添加到序列末尾：
+            </label>
+            <div class="flex flex-wrap gap-2">
+              <button 
+                v-for="shift in shiftTypes" 
+                :key="shift.id"
+                @click="addShiftToRotation(shift.id)"
+                type="button"
+                class="btn btn-outline btn-sm"
+                :style="{ borderColor: shift.color }"
+              >
+                <span class="w-2.5 h-2.5 rounded-full mr-1" :style="{ backgroundColor: shift.color }"></span>
+                + {{ shift.name }}
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="modal-footer">
+          <button @click="modals.rotationForm = false" class="btn btn-secondary">取消</button>
+          <button @click="saveRotationForm" class="btn btn-primary">保存轮班方案</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- 模态框 5：导入、导出与数据管理 -->
+    <!-- ========================================================= -->
+    <div v-if="modals.exportImport" class="modal-overlay" @click.self="modals.exportImport = false">
+      <div class="modal-card !max-w-lg">
+        
+        <div class="modal-header">
+          <h3 class="text-base font-bold text-slate-900 dark:text-white">
+            💾 数据备份、导出与同步
+          </h3>
+          <button @click="modals.exportImport = false" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+        </div>
+
+        <div class="modal-body space-y-4">
+          
+          <!-- 导出手机日历 ICS (含共同休息日标注) -->
+          <div class="p-3.5 rounded-lg border border-blue-200 dark:border-blue-900/60 bg-blue-50/50 dark:bg-blue-950/20">
+            <div class="flex items-center justify-between">
+              <div>
+                <h4 class="font-bold text-sm text-blue-900 dark:text-blue-300">📱 导出手机/系统日历 (ICS)</h4>
+                <p class="text-xs text-blue-700/80 dark:text-blue-400/80 mt-0.5">
+                  支持一键导入 iPhone 日历、安卓手机、Google Calendar、Outlook 等（智能标注双方班次及共同休息日）
+                </p>
+              </div>
+              <button @click="exportICS" class="btn btn-primary btn-sm">导出 ICS</button>
+            </div>
+          </div>
+
+          <!-- 导出 CSV 表格 -->
+          <div class="p-3.5 rounded-lg border border-slate-200 dark:border-slate-700">
+            <div class="flex items-center justify-between">
+              <div>
+                <h4 class="font-bold text-sm text-slate-800 dark:text-slate-200">📊 导出双人排班 Excel/CSV 报表</h4>
+                <p class="text-xs text-slate-500 mt-0.5">导出包含双方日期、班次、工时、备注及【共同休息日】列的规范表格</p>
+              </div>
+              <button @click="exportCSV" class="btn btn-outline btn-sm">导出 CSV</button>
+            </div>
+          </div>
+
+          <!-- JSON 备份与还原 -->
+          <div class="p-3.5 rounded-lg border border-slate-200 dark:border-slate-700 space-y-3">
+            <div>
+              <h4 class="font-bold text-sm text-slate-800 dark:text-slate-200">🛡️ 完整数据备份与恢复</h4>
+              <p class="text-xs text-slate-500 mt-0.5">导出包含双人身份、自定义班次、轮班方案及排班记录的完整 JSON 文件</p>
+            </div>
+
+            <div class="flex gap-2">
+              <button @click="exportJSON" class="btn btn-outline btn-sm flex-1">
+                📥 下载完整备份
+              </button>
+              
+              <label class="btn btn-outline btn-sm flex-1 cursor-pointer text-center">
+                <span>📤 恢复备份文件</span>
+                <input type="file" accept=".json" @change="importJSON" class="hidden">
+              </label>
+            </div>
+          </div>
+
+          <!-- 重置为示例数据 -->
+          <div class="pt-2 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
+            <span class="text-xs text-slate-400">想重新查看初始双人预设排班示例？</span>
+            <button @click="resetToDefaultData" class="btn btn-secondary btn-sm text-xs text-red-600">
+              恢复默认示例
+            </button>
+          </div>
+
+        </div>
+
+        <div class="modal-footer">
+          <button @click="modals.exportImport = false" class="btn btn-primary">关闭</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- 模态框 7：☁️ 云端双人跨设备实时同步设置 (核心新功能) -->
+    <!-- ========================================================= -->
+    <div v-if="modals.cloudSync" class="modal-overlay" @click.self="modals.cloudSync = false">
+      <div class="modal-card !max-w-lg">
+        
+        <div class="modal-header">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">☁️</span>
+            <div>
+              <h3 class="text-base font-bold text-slate-900 dark:text-white">
+                双人排班云端实时自动同步
+              </h3>
+              <p class="text-xs text-slate-500 mt-0.5">跨手机、电脑实时互通；任意一方编辑，对方屏幕秒级同步</p>
+            </div>
+          </div>
+          <button @click="modals.cloudSync = false" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+        </div>
+
+        <div class="modal-body space-y-4">
+
+          <!-- 核心设置：共享房间号 -->
+          <div class="p-4 rounded-xl border border-blue-200 dark:border-blue-900/60 bg-blue-50/40 dark:bg-blue-950/20 space-y-3">
+            <label class="form-label !mb-1 text-blue-900 dark:text-blue-300 font-bold">
+              双人共享房间号 (Sync Room ID)：
+            </label>
+            <p class="text-xs text-slate-500">
+              设置相同的房间号，双方即可进入同一个排班日程空间，彼此修改实时可见。
+            </p>
+
+            <div class="flex gap-2">
+              <input 
+                type="text" 
+                v-model="syncConfig.roomId" 
+                class="form-input font-mono font-bold text-base uppercase text-blue-700 dark:text-blue-300"
+                placeholder="例如：OUR-HOME 或 LOVE-888"
+              >
+              <button @click="generateRandomRoomId" class="btn btn-outline text-xs whitespace-nowrap !px-3" title="随机生成一个好记的房间号">
+                🎲 随机生成
+              </button>
+            </div>
+          </div>
+
+          <!-- 专属同步邀请链接 (极大方便双人使用) -->
+          <div v-if="syncConfig.roomId" class="p-3.5 rounded-xl border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/50 dark:bg-emerald-950/20 space-y-2">
+            <div class="flex items-center justify-between">
+              <div class="text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                <span>🔗</span>
+                <span>双人专属一键同步链接</span>
+              </div>
+              <button @click="copyShareLink" class="btn btn-primary btn-sm text-xs !bg-emerald-600 hover:!bg-emerald-700">
+                📋 一键复制链接
+              </button>
+            </div>
+            
+            <input 
+              type="text" 
+              readonly 
+              :value="roomShareUrl" 
+              class="form-input text-xs bg-white dark:bg-slate-800 text-slate-500 font-mono select-all"
+            >
+
+            <p class="text-[11px] text-emerald-700/80 dark:text-emerald-400/80">
+              💡 <strong>使用技巧：</strong>点击上方复制链接，微信/QQ发送给对方。对方在手机浏览器中点开，<strong>将自动加入该房间</strong>，立即看到您排好的班次，以后各自随时修改都能自动双向同步！
+            </p>
+          </div>
+
+          <!-- 同步状态指示与手动触发 -->
+          <div class="p-3 rounded-lg border border-slate-200 dark:border-slate-700 text-xs space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-slate-500 font-medium">当前同步通道状态：</span>
+              <span class="flex items-center gap-1.5 font-bold" :class="syncConfig.roomId && syncConfig.status === 'connected' ? 'text-emerald-600' : 'text-slate-400'">
+                <span class="sync-dot" :class="syncConfig.roomId && syncConfig.status === 'connected' ? 'connected' : 'offline'"></span>
+                <span>{{ syncConfig.roomId ? (syncConfig.status === 'connected' ? '已连接 (长连接毫秒级推送)' : '正在同步...') : '未配置房间' }}</span>
+              </span>
+            </div>
+
+            <div class="flex items-center justify-between">
+              <span class="text-slate-500 font-medium">最近同步更新时间：</span>
+              <span class="font-mono text-slate-700 dark:text-slate-300">{{ syncConfig.lastSyncTime || '暂无同步记录' }}</span>
+            </div>
+
+            <div class="pt-2 flex gap-2">
+              <button @click="pullFromCloud(false)" class="btn btn-outline btn-sm flex-1 text-xs">
+                🔄 立即从云端刷新
+              </button>
+              <button @click="pushToCloud" class="btn btn-outline btn-sm flex-1 text-xs">
+                ⬆️ 强制推送本地覆盖云端
+              </button>
+            </div>
+          </div>
+
+          <!-- 自定义后端接口 (高级折叠项) -->
+          <details class="text-xs text-slate-500 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5">
+            <summary class="cursor-pointer font-semibold text-slate-700 dark:text-slate-300 select-none">
+              ⚙️ 高级设置：自定义云端服务器接口
+            </summary>
+            <div class="mt-2 space-y-2">
+              <label class="block text-[11px] text-slate-400">
+                后端 API 基础地址（默认留空即可自动识别本地服务或云端部署）：
+              </label>
+              <input 
+                type="text" 
+                v-model="syncConfig.endpoint" 
+                placeholder="例如: https://your-domain.com/api/sync (留空为自动)" 
+                class="form-input text-xs font-mono"
+              >
+              <p class="text-[10px] text-slate-400">
+                若在本地终端运行 <code>node server.js</code> 或部署在云服务器、Vercel 上，无需填写此项。
+              </p>
+            </div>
+          </details>
+
+        </div>
+
+        <div class="modal-footer justify-between">
+          <button v-if="syncConfig.roomId" @click="leaveSyncRoom" class="btn btn-outline text-red-600 border-red-200 text-xs">
+            退出此房间
+          </button>
+          <div v-else></div>
+
+          <div class="flex gap-2">
+            <button @click="modals.cloudSync = false" class="btn btn-secondary">关闭</button>
+            <button @click="saveSyncConfig" class="btn btn-primary">
+              ✓ 保存并开启同步
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Toast 消息容器 -->
+    <div class="toast-container">
+      <div 
+        v-for="toast in toasts" 
+        :key="toast.id"
+        class="toast-item"
+        :class="toast.type"
+      >
+        <span v-if="toast.type === 'success'">✓</span>
+        <span v-else-if="toast.type === 'warning'">⚠️</span>
+        <span v-else-if="toast.type === 'error'">✕</span>
+        <span v-else>ℹ️</span>
+        <span>{{ toast.message }}</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 引入 Vue 3 CDN (支持多源容错) -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@3.4.21/dist/vue.global.prod.js"></script>
+  <script>
+    if (typeof Vue === 'undefined') {
+      document.write('<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"><\/script>');
+    }
+  </script>
+
+  <!-- 引入应用核心逻辑 -->
+  <script src="app.js"></script>
+</body>
+</html>
