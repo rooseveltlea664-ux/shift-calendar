@@ -1411,8 +1411,6 @@ const app = Vue.createApp({
     setViewMode(mode) {
       this.viewMode = mode;
       localStorage.setItem('shift_view_mode_v1', mode);
-      const name = mode === 'both' ? '双人对比视图' : (mode === 'p1' ? `仅看【${this.p1Info.name}】` : `仅看【${this.p2Info.name}】`);
-      this.showToast(`已切换至：${name}`, 'info');
     },
 
     toggleTheme() {

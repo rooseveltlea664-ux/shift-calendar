@@ -382,11 +382,18 @@ body {
 }
 
 .mutual-rest-star {
-  font-size: 10px;
+  font-size: 11px;
   color: #10b981;
   font-weight: 900;
   line-height: 1;
-  transform: scale(0.9);
+  display: inline-block;
+  vertical-align: super;
+  transform: translateY(-1px);
+  filter: drop-shadow(0 1px 1px rgba(16, 185, 129, 0.2));
+}
+
+[data-theme="dark"] .mutual-rest-star {
+  color: #34d399;
 }
 
 /* 日期与农历/节气横向同行排版 (完美对齐实景照片) */

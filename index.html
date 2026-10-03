@@ -22,7 +22,7 @@
   </script>
 
   <!-- 引入样式表 (带版本号强刷缓存) -->
-  <link rel="stylesheet" href="styles.css?v=20261004_1">
+  <link rel="stylesheet" href="styles.css?v=20261004_2">
 </head>
 <body>
   <div id="app" v-cloak class="min-h-screen flex flex-col">
@@ -114,12 +114,7 @@
           >
             <!-- 仅当属于当月日期时渲染内容，非当月留白（完全对齐参考图去方格化极简排版） -->
             <template v-if="cell.isCurrentMonth">
-              <!-- 共同休息日 专属小标签 (对齐用户需求：小标签或星号标注) -->
-              <span v-if="cell.isMutualRest" class="mutual-rest-badge">
-                ★同休
-              </span>
-
-              <!-- 日期与农历/节气 (数字 + 农历/白露/秋分 + 星号) -->
+              <!-- 日期与农历/节气 (数字 + 农历/白露/秋分 + 同休星标) -->
               <div class="cell-top-row">
                 <div class="cell-day-num-wrap">
                   <span class="cell-day-num">{{ cell.dayNumber }}</span>
@@ -1936,6 +1931,6 @@
   </script>
 
   <!-- 引入应用核心逻辑 (带版本号强刷缓存) -->
-  <script src="app.js?v=20261004_1"></script>
+  <script src="app.js?v=20261004_2"></script>
 </body>
 </html>
