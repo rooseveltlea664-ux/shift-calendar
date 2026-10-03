@@ -275,6 +275,7 @@ const app = Vue.createApp({
         autoSyncInterval: 5000,
         syncMode: 'auto',
       },
+      lastGeneratedShareUrl: '',
       syncTimer: null,
       sseEventSource: null,
       debouncePushTimer: null,
@@ -371,9 +372,11 @@ const app = Vue.createApp({
     },
 
     roomShareUrl() {
-      if (!this.syncConfig.roomId) return '';
+      if (this.lastGeneratedShareUrl) return this.lastGeneratedShareUrl;
       const url = new URL(window.location.href);
-      url.searchParams.set('room', this.syncConfig.roomId);
+      if (this.syncConfig.roomId) {
+        url.searchParams.set('room', this.syncConfig.roomId);
+      }
       return url.toString();
     },
 
@@ -615,9 +618,9 @@ const app = Vue.createApp({
     }
   },
 
-  mounted() {
+  async mounted() {
     this.applyTheme();
-    this.checkUrlForRoomParam();
+    await this.checkUrlForRoomParam();
 
     if (Object.keys(this.schedules).length === 0) {
       this.generateDemoSchedules();
@@ -629,6 +632,11 @@ const app = Vue.createApp({
     }
     this.initPersonForm();
     this.initCloudSync();
+
+    // 监听地址栏 hash 变化（如用户在当前页面直接粘贴或点击新同步链接）
+    window.addEventListener('hashchange', () => {
+      this.checkUrlForRoomParam();
+    });
   },
 
   beforeUnmount() {
@@ -867,10 +875,126 @@ const app = Vue.createApp({
     },
 
     // =========================================================
-    // ☁️ 云端自动同步引擎
+    // ☁️ 云端与跨设备同步核心引擎
     // =========================================================
-    checkUrlForRoomParam() {
+    isStaticHosting() {
+      if (typeof window === 'undefined') return false;
+      return window.location.protocol === 'file:' ||
+             window.location.hostname.endsWith('github.io') ||
+             window.location.hostname.endsWith('githubusercontent.com') ||
+             window.location.hostname.endsWith('gitlab.io') ||
+             window.location.hostname.endsWith('gitee.io');
+    },
+
+    // 浏览器级高效状态压缩与解压引擎（零服务器、100% 离线可用）
+    async compressToUrlSafe(str) {
+      if (typeof CompressionStream !== 'undefined') {
+        try {
+          const byteArray = new TextEncoder().encode(str);
+          const cs = new CompressionStream('deflate');
+          const writer = cs.writable.getWriter();
+          writer.write(byteArray);
+          writer.close();
+          const buffer = await new Response(cs.readable).arrayBuffer();
+          const bytes = new Uint8Array(buffer);
+          let binary = '';
+          for (let i = 0; i < bytes.byteLength; i++) {
+            binary += String.fromCharCode(bytes[i]);
+          }
+          const base64 = btoa(binary);
+          return 'c1_' + base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        } catch (e) {
+          console.warn('CompressionStream failed, fallback to raw', e);
+        }
+      }
+      return 'raw_' + encodeURIComponent(str);
+    },
+
+    async decompressFromUrlSafe(input) {
+      if (!input) return null;
+      if (input.startsWith('raw_')) {
+        try {
+          return decodeURIComponent(input.slice(4));
+        } catch (e) {
+          return null;
+        }
+      }
+      let b64 = input;
+      if (input.startsWith('c1_')) {
+        b64 = input.slice(3);
+      }
+      let base64 = b64.replace(/-/g, '+').replace(/_/g, '/');
+      while (base64.length % 4 !== 0) {
+        base64 += '=';
+      }
+
+      if (typeof DecompressionStream !== 'undefined') {
+        try {
+          const binary = atob(base64);
+          const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i);
+          }
+          const ds = new DecompressionStream('deflate');
+          const writer = ds.writable.getWriter();
+          writer.write(bytes);
+          writer.close();
+          const buffer = await new Response(ds.readable).arrayBuffer();
+          return new TextDecoder().decode(buffer);
+        } catch (e) {
+          console.warn('DecompressionStream failed', e);
+        }
+      }
       try {
+        return decodeURIComponent(input);
+      } catch (e) {
+        return null;
+      }
+    },
+
+    async checkUrlForRoomParam() {
+      try {
+        // 1. 优先检查 URL Hash 中是否携带全量压缩排班数据 (#data=c1_... 或 #sync=c1_...)
+        let hashData = '';
+        if (window.location.hash) {
+          const hashStr = window.location.hash.substring(1);
+          const hashParams = new URLSearchParams(hashStr);
+          hashData = hashParams.get('data') || hashParams.get('sync') || '';
+          if (!hashData && (hashStr.startsWith('c1_') || hashStr.startsWith('raw_'))) {
+            hashData = hashStr;
+          }
+        }
+
+        if (hashData) {
+          try {
+            const jsonStr = await this.decompressFromUrlSafe(hashData);
+            if (jsonStr) {
+              const payload = JSON.parse(jsonStr);
+              if (payload && (payload.persons || payload.schedules || payload.shiftTypes)) {
+                // 自动归档快照，防止误覆盖已有数据
+                this.createHistorySnapshot('收到分享链接自动同步前备份');
+                this.applyIncomingCloudData(payload, payload.exportedAt || Date.now());
+
+                if (payload.roomId) {
+                  this.syncConfig.roomId = payload.roomId;
+                  this.syncConfig.enabled = true;
+                  localStorage.setItem('shift_sync_room_v1', payload.roomId);
+                }
+
+                // 清除 URL hash，保持地址栏简洁
+                const cleanUrl = window.location.pathname + window.location.search;
+                window.history.replaceState(null, '', cleanUrl);
+
+                this.showToast('🎉 同步成功！已导入搭档分享的最新全量排班日程！', 'success');
+                return;
+              }
+            }
+          } catch (unpackErr) {
+            console.error('Failed to unpack hash sync data:', unpackErr);
+          }
+        }
+
+        // 2. 检查 Query 参数中的房间号 (?room=...)
         const url = new URL(window.location.href);
         const roomParam = url.searchParams.get('room');
         if (roomParam && roomParam.trim()) {
@@ -888,13 +1012,19 @@ const app = Vue.createApp({
     },
 
     getSyncApiUrl() {
-      const roomId = encodeURIComponent(this.syncConfig.roomId.trim());
+      const roomId = encodeURIComponent((this.syncConfig.roomId || '').trim());
+      if (!roomId) return null;
+
       if (this.syncConfig.endpoint && this.syncConfig.endpoint.trim()) {
         const base = this.syncConfig.endpoint.trim().replace(/\/$/, '');
         return `${base}/${roomId}`;
       }
 
       if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
+        // GitHub Pages 等纯静态网站无法运行后端，直接返回 null 避免无谓 404
+        if (this.isStaticHosting()) {
+          return null;
+        }
         return `/api/sync/${roomId}`;
       }
 
@@ -903,7 +1033,7 @@ const app = Vue.createApp({
 
     getSyncEventsUrl() {
       const apiUrl = this.getSyncApiUrl();
-      return `${apiUrl}/events`;
+      return apiUrl ? `${apiUrl}/events` : null;
     },
 
     initCloudSync() {
@@ -937,13 +1067,18 @@ const app = Vue.createApp({
 
     setupSSEConnection() {
       if (typeof EventSource === 'undefined' || !this.syncConfig.roomId) return;
+      const sseUrl = this.getSyncEventsUrl();
+      if (!sseUrl) {
+        // 静态托管环境不发起无效的 SSE 长连接
+        this.syncConfig.status = 'connected';
+        return;
+      }
 
       if (this.sseEventSource) {
         try { this.sseEventSource.close(); } catch (e) {}
       }
 
       try {
-        const sseUrl = this.getSyncEventsUrl();
         this.sseEventSource = new EventSource(sseUrl);
 
         this.sseEventSource.addEventListener('update', (event) => {
@@ -985,6 +1120,14 @@ const app = Vue.createApp({
       if (!this.syncConfig.roomId) return;
 
       const url = this.getSyncApiUrl();
+      if (!url) {
+        if (!silent) {
+          this.showToast('当前网站为静态托管环境，请使用【一键复制同步链接】秒级互相同步，或配置云端后端接口', 'info');
+        }
+        this.syncConfig.status = 'connected';
+        return;
+      }
+
       try {
         const res = await fetch(url, {
           method: 'GET',
@@ -1053,6 +1196,12 @@ const app = Vue.createApp({
       if (!this.syncConfig.roomId) return;
 
       const url = this.getSyncApiUrl();
+      if (!url) {
+        this.syncConfig.status = 'connected';
+        this.syncConfig.lastSyncTime = new Date().toLocaleTimeString();
+        return;
+      }
+
       const payload = {
         persons: this.persons,
         shiftTypes: this.shiftTypes,
@@ -1088,7 +1237,7 @@ const app = Vue.createApp({
     },
 
     saveSyncConfig() {
-      const room = this.syncConfig.roomId.trim();
+      const room = (this.syncConfig.roomId || '').trim();
       if (!room) {
         this.showToast('请输入或生成一个房间号', 'warning');
         return;
@@ -1102,7 +1251,7 @@ const app = Vue.createApp({
       this.cleanupCloudSync();
       this.initCloudSync();
       this.pushToCloud();
-      this.showToast(`已开启云端实时同步！房间：${room}`, 'success');
+      this.showToast(`已开启同步！房间：${room}`, 'success');
     },
 
     leaveSyncRoom() {
@@ -1117,21 +1266,43 @@ const app = Vue.createApp({
       this.showToast('已断开云端同步', 'info');
     },
 
-    copyShareLink() {
-      if (!this.syncConfig.roomId) {
-        this.showToast('请先设置房间号', 'warning');
-        return;
-      }
+    async copyShareLink() {
+      const payload = {
+        persons: this.persons,
+        shiftTypes: this.shiftTypes,
+        rotations: this.rotations,
+        schedules: this.schedules,
+        roomId: this.syncConfig.roomId || 'SHARE',
+        version: 2,
+        exportedAt: Date.now()
+      };
 
-      const shareUrl = this.roomShareUrl;
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(shareUrl).then(() => {
-          this.showToast('专属同步链接已复制！发送给对方直接打开即可实时互相同步！', 'success');
-        }).catch(() => {
-          this.fallbackCopyText(shareUrl);
-        });
-      } else {
-        this.fallbackCopyText(shareUrl);
+      try {
+        const jsonStr = JSON.stringify(payload);
+        const compressed = await this.compressToUrlSafe(jsonStr);
+        const url = new URL(window.location.href);
+        url.hash = `data=${compressed}`;
+        if (this.syncConfig.roomId) {
+          url.searchParams.set('room', this.syncConfig.roomId);
+        }
+        const fullShareUrl = url.toString();
+        this.lastGeneratedShareUrl = fullShareUrl;
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(fullShareUrl);
+        } else {
+          this.fallbackCopyText(fullShareUrl);
+        }
+        this.showToast('📋 全量排班同步链接已复制！发给对方微信点开即完成同步！', 'success');
+      } catch (err) {
+        console.error('Generate share url error', err);
+        const fallbackUrl = this.roomShareUrl;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(fallbackUrl);
+        } else {
+          this.fallbackCopyText(fallbackUrl);
+        }
+        this.showToast('同步链接已复制！', 'success');
       }
     },
 

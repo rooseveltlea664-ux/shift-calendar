@@ -22,7 +22,7 @@
   </script>
 
   <!-- 引入样式表 (带版本号强刷缓存) -->
-  <link rel="stylesheet" href="styles.css?v=20260930_1605">
+  <link rel="stylesheet" href="styles.css?v=20261004_1">
 </head>
 <body>
   <div id="app" v-cloak class="min-h-screen flex flex-col">
@@ -1394,13 +1394,43 @@
 
         <div class="modal-body space-y-4">
 
+          <!-- 方式一：免服务器专属极速同步 (推荐首选 · 100% 成功互通) -->
+          <div class="p-4 rounded-xl border-2 border-emerald-500/40 bg-emerald-50/70 dark:bg-emerald-950/30 space-y-2.5 shadow-sm">
+            <div class="flex items-center justify-between">
+              <div class="text-xs font-bold text-emerald-900 dark:text-emerald-200 flex items-center gap-1.5">
+                <span class="text-base">🚀</span>
+                <span>方式一：全量排班同步链接（推荐首选 · 零配置）</span>
+              </div>
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-200/80 dark:bg-emerald-800 text-emerald-800 dark:text-emerald-100 font-bold">100% 稳定</span>
+            </div>
+
+            <p class="text-xs text-emerald-900/80 dark:text-emerald-300/80 leading-relaxed">
+              将两人的排班日历、自定义班次、轮班方案压缩打包。点击下方按钮复制后发给搭档（微信/QQ等），<strong>对方在手机或电脑浏览器点开即全自动导入同步</strong>！
+            </p>
+
+            <button @click="copyShareLink" class="w-full btn btn-primary text-xs !bg-emerald-600 hover:!bg-emerald-700 !py-2.5 font-bold shadow-md shadow-emerald-500/20 flex items-center justify-center gap-2">
+              <span>📋</span>
+              <span>一键复制全量同步链接（发给对方直接点开）</span>
+            </button>
+
+            <div v-if="lastGeneratedShareUrl || roomShareUrl" class="pt-1">
+              <input 
+                type="text" 
+                readonly 
+                :value="lastGeneratedShareUrl || roomShareUrl" 
+                class="form-input text-xs bg-white dark:bg-slate-800 text-slate-500 font-mono select-all"
+                title="已生成的同步链接"
+              >
+            </div>
+          </div>
+
           <!-- 核心设置：共享房间号 -->
-          <div class="p-4 rounded-xl border border-blue-200 dark:border-blue-900/60 bg-blue-50/40 dark:bg-blue-950/20 space-y-3">
-            <label class="form-label !mb-1 text-blue-900 dark:text-blue-300 font-bold">
+          <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40 space-y-3">
+            <label class="form-label !mb-1 text-slate-800 dark:text-slate-200 font-bold">
               双人共享房间号 (Sync Room ID)：
             </label>
             <p class="text-xs text-slate-500">
-              设置相同的房间号，双方即可进入同一个排班日程空间，彼此修改实时可见。
+              设置相同的房间号，双方即可进入同一个排班日程空间。
             </p>
 
             <div class="flex gap-2">
@@ -1416,46 +1446,38 @@
             </div>
           </div>
 
-          <!-- 专属同步邀请链接 (极大方便双人使用) -->
-          <div v-if="syncConfig.roomId" class="p-3.5 rounded-xl border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/50 dark:bg-emerald-950/20 space-y-2">
+          <!-- 方式二：云端实时后端推送 (进阶自动同步) -->
+          <div class="p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 text-xs space-y-2.5">
             <div class="flex items-center justify-between">
-              <div class="text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
-                <span>🔗</span>
-                <span>双人专属一键同步链接</span>
-              </div>
-              <button @click="copyShareLink" class="btn btn-primary btn-sm text-xs !bg-emerald-600 hover:!bg-emerald-700">
-                📋 一键复制链接
-              </button>
-            </div>
-            
-            <input 
-              type="text" 
-              readonly 
-              :value="roomShareUrl" 
-              class="form-input text-xs bg-white dark:bg-slate-800 text-slate-500 font-mono select-all"
-            >
-
-            <p class="text-[11px] text-emerald-700/80 dark:text-emerald-400/80">
-              💡 <strong>使用技巧：</strong>点击上方复制链接，微信/QQ发送给对方。对方在手机浏览器中点开，<strong>将自动加入该房间</strong>，立即看到您排好的班次，以后各自随时修改都能自动双向同步！
-            </p>
-          </div>
-
-          <!-- 同步状态指示与手动触发 -->
-          <div class="p-3 rounded-lg border border-slate-200 dark:border-slate-700 text-xs space-y-2">
-            <div class="flex items-center justify-between">
-              <span class="text-slate-500 font-medium">当前同步通道状态：</span>
+              <span class="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                <span>⚡</span>
+                <span>方式二：云端实时后端服务</span>
+              </span>
               <span class="flex items-center gap-1.5 font-bold" :class="syncConfig.roomId && syncConfig.status === 'connected' ? 'text-emerald-600' : 'text-slate-400'">
                 <span class="sync-dot" :class="syncConfig.roomId && syncConfig.status === 'connected' ? 'connected' : 'offline'"></span>
-                <span>{{ syncConfig.roomId ? (syncConfig.status === 'connected' ? '已连接 (长连接毫秒级推送)' : '正在同步...') : '未配置房间' }}</span>
+                <span>{{ syncConfig.roomId ? (syncConfig.status === 'connected' ? '已就绪' : '正在连接...') : '未配置' }}</span>
               </span>
             </div>
 
-            <div class="flex items-center justify-between">
-              <span class="text-slate-500 font-medium">最近同步更新时间：</span>
+            <div class="p-2.5 rounded-lg bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40 text-[11px] text-amber-800 dark:text-amber-300 space-y-1">
+              <p>💡 <strong>平台提示：</strong>当前网站部署于 GitHub Pages 静态平台。纯静态平台不支持执行后端代码，因此请优先使用上方的<strong>【一键全量同步链接】</strong>。</p>
+              <p>如需实现双方免发链接、任意一方点击屏幕对方实时秒级响应，可将本项目一键免费导入到 Vercel：</p>
+              <a 
+                href="https://vercel.com/new/clone?repository-url=https://github.com/rooseveltlea664-ux/shift-calendar" 
+                target="_blank" 
+                class="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 font-semibold hover:underline mt-1"
+              >
+                <span>▲ 点击一键免费部署至 Vercel (内置自动同步后端)</span>
+                <span>↗</span>
+              </a>
+            </div>
+
+            <div class="flex items-center justify-between text-slate-500 pt-1">
+              <span>最近更新时间：</span>
               <span class="font-mono text-slate-700 dark:text-slate-300">{{ syncConfig.lastSyncTime || '暂无同步记录' }}</span>
             </div>
 
-            <div class="pt-2 flex gap-2">
+            <div class="pt-1 flex gap-2">
               <button @click="pullFromCloud(false)" class="btn btn-outline btn-sm flex-1 text-xs">
                 🔄 立即从云端刷新
               </button>
@@ -1468,20 +1490,20 @@
           <!-- 自定义后端接口 (高级折叠项) -->
           <details class="text-xs text-slate-500 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5">
             <summary class="cursor-pointer font-semibold text-slate-700 dark:text-slate-300 select-none">
-              ⚙️ 高级设置：自定义云端服务器接口
+              ⚙️ 高级设置：自定义云端服务器 API 接口
             </summary>
             <div class="mt-2 space-y-2">
               <label class="block text-[11px] text-slate-400">
-                后端 API 基础地址（默认留空即可自动识别本地服务或云端部署）：
+                后端 API 基础地址（默认留空即可自动识别本地服务或 Vercel 部署）：
               </label>
               <input 
                 type="text" 
                 v-model="syncConfig.endpoint" 
-                placeholder="例如: https://your-domain.com/api/sync (留空为自动)" 
+                placeholder="例如: https://your-shift.vercel.app/api/sync (留空为自动)" 
                 class="form-input text-xs font-mono"
               >
               <p class="text-[10px] text-slate-400">
-                若在本地终端运行 <code>node server.js</code> 或部署在云服务器、Vercel 上，无需填写此项。
+                若在本地终端运行 <code>node server.js</code> 或部署在 Vercel 上，填写其公开地址即可开启毫秒级双向长连接。
               </p>
             </div>
           </details>
@@ -1914,6 +1936,6 @@
   </script>
 
   <!-- 引入应用核心逻辑 (带版本号强刷缓存) -->
-  <script src="app.js?v=20260930_1605"></script>
+  <script src="app.js?v=20261004_1"></script>
 </body>
 </html>
